@@ -1,0 +1,77 @@
+$flaticon-font: "flaticon";
+
+@font-face {
+    font-family: $flaticon-font;
+    src: url("./flaticon.ttf?95a56ff57e8d0557ee40da3b6ed5f46e") format("truetype"),
+url("./flaticon.woff?95a56ff57e8d0557ee40da3b6ed5f46e") format("woff"),
+url("./flaticon.woff2?95a56ff57e8d0557ee40da3b6ed5f46e") format("woff2"),
+url("./flaticon.eot?95a56ff57e8d0557ee40da3b6ed5f46e#iefix") format("embedded-opentype"),
+url("./flaticon.svg?95a56ff57e8d0557ee40da3b6ed5f46e#flaticon") format("svg");
+}
+
+i[class^="flaticon-"]:before, i[class*=" flaticon-"]:before {
+    font-family: flaticon !important;
+    font-style: normal;
+    font-weight: normal !important;
+    font-variant: normal;
+    text-transform: none;
+    line-height: 1;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+$flaticon-map: (
+    "water-drop": "\f101",
+    "water-drop-1": "\f102",
+    "recycle": "\f103",
+    "glass": "\f104",
+    "water-glass": "\f105",
+    "water-bottle": "\f106",
+    "water-bottle-1": "\f107",
+    "water": "\f108",
+    "water-1": "\f109",
+    "draw-check-mark": "\f10a",
+    "check": "\f10b",
+    "cancel": "\f10c",
+    "close": "\f10d",
+);
+
+.flaticon-water-drop:before {
+    content: map-get($flaticon-map, "water-drop");
+}
+.flaticon-water-drop-1:before {
+    content: map-get($flaticon-map, "water-drop-1");
+}
+.flaticon-recycle:before {
+    content: map-get($flaticon-map, "recycle");
+}
+.flaticon-glass:before {
+    content: map-get($flaticon-map, "glass");
+}
+.flaticon-water-glass:before {
+    content: map-get($flaticon-map, "water-glass");
+}
+.flaticon-water-bottle:before {
+    content: map-get($flaticon-map, "water-bottle");
+}
+.flaticon-water-bottle-1:before {
+    content: map-get($flaticon-map, "water-bottle-1");
+}
+.flaticon-water:before {
+    content: map-get($flaticon-map, "water");
+}
+.flaticon-water-1:before {
+    content: map-get($flaticon-map, "water-1");
+}
+.flaticon-draw-check-mark:before {
+    content: map-get($flaticon-map, "draw-check-mark");
+}
+.flaticon-check:before {
+    content: map-get($flaticon-map, "check");
+}
+.flaticon-cancel:before {
+    content: map-get($flaticon-map, "cancel");
+}
+.flaticon-close:before {
+    content: map-get($flaticon-map, "close");
+}
