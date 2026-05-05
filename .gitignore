@@ -39,3 +39,10 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# large asset packs (source)
+Acuasafe Pack/
+
+# scratch and temp files
+scratch-*.ts
+*.sql.bak

@@ -1,36 +1,70 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# PAMSIMAS Tirtowening - Web Admin
 
-## Getting Started
+Sistem Manajemen BUMDes (PAMSIMAS) Tirtowening untuk pengelolaan pelanggan, pencatatan meter, dan pembayaran tagihan air secara digital.
 
-First, run the development server:
+## 🚀 Fitur Utama
+- **Dashboard Eksekutif:** Statistik real-time statistik pembayaran dan pemakaian.
+- **Manajemen Pelanggan:** Database pelanggan terpusat per wilayah.
+- **Input Meteran:** Pencatatan meter bulanan yang cepat dan akurat.
+- **Sistem Pembayaran:** Mendukung pembayaran Tunai, Transfer, dan Saldo Deposit.
+- **Cetak Dokumen:** Struk Thermal (58mm), Surat Tagihan, dan Surat Pemutusan Sambungan.
 
+## 🛠️ Teknologi
+- **Frontend/Backend:** Next.js (App Router)
+- **Styling:** Tailwind CSS & Shadcn UI
+- **Database & Auth:** Supabase (PostgreSQL)
+
+---
+
+## 🖥️ Panduan Instalasi di VPS (Ubuntu Server)
+
+Ikuti langkah-langkah berikut untuk menjalankan aplikasi di VPS NAT Bapak.
+
+### 1. Prasyarat (Aplikasi yang Harus Diinstall)
+Jalankan perintah berikut di terminal VPS Bapak:
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+# Update sistem
+sudo apt update && sudo apt upgrade -y
+
+# Install Node.js (Versi 20.x atau terbaru)
+curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+sudo apt install -y nodejs
+
+# Install Git & PM2 (Untuk menjalankan aplikasi di background)
+sudo npm install -g pm2
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### 2. Clone & Setup Aplikasi
+```bash
+# Clone repository
+git clone <URL_REPOSITORY_BAPAK>
+cd pamsimas-tirtowening
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+# Install dependensi
+npm install
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+# Buat file environment (PENTING: Isi dengan kunci dari Supabase)
+nano .env.local
+```
+*Salin dan tempelkan `NEXT_PUBLIC_SUPABASE_URL` dan `NEXT_PUBLIC_SUPABASE_ANON_KEY` Bapak ke dalam file tersebut, lalu simpan (Ctrl+O, Enter, Ctrl+X).*
 
-## Learn More
+### 3. Build & Jalankan
+```bash
+# Build aplikasi untuk produksi
+npm run build
 
-To learn more about Next.js, take a look at the following resources:
+# Jalankan menggunakan PM2 agar aplikasi tidak mati saat terminal ditutup
+pm2 start npm --name "pamsimas-web" -- start
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+# Agar PM2 otomatis jalan saat VPS restart
+pm2 save
+pm2 startup
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+### 4. Akses Aplikasi
+Gunakan fitur **Domain Forwarding** pada panel VPS NAT Bapak untuk mengarahkan Domain ke IP Internal VPS pada **Port 3000**.
 
-## Deploy on Vercel
+---
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## 📄 Lisensi
+Sistem ini dikembangkan khusus untuk PAMSIMAS Tirtowening.
