@@ -116,7 +116,9 @@ export default async function RevenueReportPage({
 
                 {/* Filters & Actions */}
                 <div className="flex flex-wrap items-center gap-3">
-                    <ReportFilters />
+                    <Suspense fallback={<div className="h-10 w-40 animate-pulse bg-slate-50 rounded-xl" />}>
+                        <ReportFilters />
+                    </Suspense>
                     <Button
                         variant="default"
                         className="bg-indigo-600 hover:bg-indigo-700 shadow-md shadow-indigo-200 rounded-xl h-10"

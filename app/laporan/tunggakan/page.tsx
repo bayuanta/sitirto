@@ -106,7 +106,9 @@ export default async function ArrearsReportPage({
             </div>
 
             {/* === DATE FILTER === */}
-            <DateRangeFilter />
+            <Suspense fallback={<div className="h-20 w-full animate-pulse bg-slate-50 rounded-2xl" />}>
+                <DateRangeFilter />
+            </Suspense>
 
             {/* === KPI CARDS === */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">

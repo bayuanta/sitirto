@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useMemo, useRef } from "react";
+import { useEffect, useState, useMemo, useRef, Suspense } from "react";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { toast } from "sonner";
 import * as htmlToImage from 'html-to-image';
@@ -105,7 +105,7 @@ import { cn } from "@/lib/utils";
 // --- TYPE DEFINITION ---
 type CustomerData = Customer; // Alias to match previous code style if needed
 
-export default function PelangganPage() {
+function PelangganPageContent() {
     // State
     const [customers, setCustomers] = useState<CustomerData[]>([]);
     const [wilayahList, setWilayahList] = useState<Wilayah[]>([]);
@@ -712,6 +712,21 @@ export default function PelangganPage() {
             </Dialog>
 
         </div>
+    );
+}
+
+export default function PelangganPage() {
+    return (
+        <Suspense fallback={
+            <div className="flex items-center justify-center min-h-screen">
+                <div className="flex flex-col items-center gap-2">
+                    <Loader2 className="h-8 w-8 animate-spin text-indigo-600" />
+                    <p className="text-sm font-medium text-slate-500">Memuat Data Pelanggan...</p>
+                </div>
+            </div>
+        }>
+            <PelangganPageContent />
+        </Suspense>
     );
 }
 
