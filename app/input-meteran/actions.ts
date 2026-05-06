@@ -361,7 +361,7 @@ export async function getBulkInputMeterData(
             prev_bill: prevRecord?.bill_amount || 0,
             is_saved,
             current_value_if_saved: is_saved ? current_meter_val : null,
-            saved_bill_amount: is_saved ? current.bill_amount : null,
+            saved_bill_amount: is_saved ? current?.bill_amount : null,
             defaultRate: c.rate?.flat_rate || 0,
             defaultMaintenance: c.rate?.maintenance_fee || 0,
             rateName: c.rate?.name || "-",
