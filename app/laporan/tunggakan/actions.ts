@@ -36,12 +36,14 @@ export async function getArrearsSummary(dateFilter?: DateRangeFilter) {
             bill_amount,
             paid_amount,
             status,
-            customer:customers (
+            customer:customers!inner (
                 id,
+                status,
                 area:areas (name)
             )
         `)
-        .neq("status", "paid");
+        .neq("status", "paid")
+        .eq("customer.status", "active");
 
     if (error || !records) {
         console.error("Error fetching arrears summary", error);
@@ -90,11 +92,13 @@ export async function getArrearsByArea(dateFilter?: DateRangeFilter) {
             year,
             bill_amount,
             paid_amount,
-            customer:customers (
+            customer:customers!inner (
+                status,
                 area:areas (name)
             )
         `)
-        .neq("status", "paid");
+        .neq("status", "paid")
+        .eq("customer.status", "active");
 
     if (error || !records) return [];
 
@@ -133,8 +137,9 @@ export async function getArrearsByAge(dateFilter?: DateRangeFilter) {
 
     const { data: records, error } = await supabase
         .from("meter_records")
-        .select("month, year, bill_amount, paid_amount")
-        .neq("status", "paid");
+        .select("month, year, bill_amount, paid_amount, customers!inner(status)")
+        .neq("status", "paid")
+        .eq("customers.status", "active");
 
     if (error || !records) return [];
 
@@ -185,16 +190,18 @@ export async function getArrearsDetailList(dateFilter?: DateRangeFilter) {
             paid_amount,
             status,
             usage,
-            customer:customers (
+            customer:customers!inner (
                 id,
                 name,
+                status,
                 connection_number,
                 phone,
                 area_id,
                 area:areas (id, name)
             )
         `)
-        .neq("status", "paid");
+        .neq("status", "paid")
+        .eq("customer.status", "active");
 
     const { data, error } = await query.order("year", { ascending: true }).order("month", { ascending: true });
 
@@ -296,14 +303,16 @@ export async function getTopDebtors(limit: number = 10, dateFilter?: DateRangeFi
             year,
             bill_amount,
             paid_amount,
-            customer:customers (
+            customer:customers!inner (
                 id,
                 name,
+                status,
                 connection_number,
                 area:areas (name)
             )
         `)
-        .neq("status", "paid");
+        .neq("status", "paid")
+        .eq("customer.status", "active");
 
     if (error || !records) return [];
 

@@ -16,6 +16,7 @@ export type Customer = {
     hp?: string;
     installation_status?: string;
     meter_reading_group?: string;
+    credit_balance?: number;
 };
 
 export type Wilayah = {
@@ -46,7 +47,8 @@ export async function getCustomers(
             rate:rates(id, name, code),
             installation:installation_fees(status)
         `)
-        .order("name", { ascending: true });
+        .order("name", { ascending: true })
+        .limit(200);
 
     if (areaId && areaId !== "all") {
         dbQuery = dbQuery.eq("area_id", areaId);
@@ -82,6 +84,7 @@ export async function getCustomers(
         rate_id: item.rate_id,
         kategori: item.rate ? item.rate.code : "-",
         meter_reading_group: item.meter_reading_group || "A",
+        credit_balance: item.credit_balance || 0,
         // Helper to show if they have pending install fee
         installation_status: item.installation?.[0]?.status || "none"
     }));
@@ -406,6 +409,8 @@ export async function insertLegacyRecord(payload: {
         }
 
         revalidatePath("/pelanggan");
+        revalidatePath("/laporan/tunggakan");
+        revalidatePath("/");
         return { success: true };
     } catch (err: any) {
         console.error("Insert legacy record error:", err);
@@ -464,6 +469,8 @@ export async function deleteMeterRecord(recordId: number) {
         }
 
         revalidatePath("/pelanggan");
+        revalidatePath("/laporan/tunggakan");
+        revalidatePath("/");
         return { success: true };
     } catch (err: any) {
         console.error("Delete meter record error:", err);
@@ -562,6 +569,8 @@ export async function updateMeterRecord(recordId: number, payload: {
         }
 
         revalidatePath("/pelanggan");
+        revalidatePath("/laporan/tunggakan");
+        revalidatePath("/");
         return { success: true };
     } catch (err: any) {
         console.error("Update meter record error:", err);
@@ -798,6 +807,8 @@ export async function toggleCustomerStatus(customerId: number, newStatus: 'activ
         if (error) throw error;
 
         revalidatePath("/pelanggan");
+        revalidatePath("/laporan/tunggakan");
+        revalidatePath("/");
         return { success: true };
     } catch (err: any) {
         console.error("Toggle customer status error:", err);
@@ -842,6 +853,8 @@ export async function deleteCustomer(customerId: number) {
         if (deleteError) throw deleteError;
 
         revalidatePath("/pelanggan");
+        revalidatePath("/laporan/tunggakan");
+        revalidatePath("/");
         return { success: true };
     } catch (err: any) {
         console.error("Delete customer error:", err);

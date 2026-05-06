@@ -22,6 +22,7 @@ export type PrintData = {
         waterCost: number;
         maintenanceCost: number;
         billAmount: number; // Total original bill amount
+        remaining: number; // Current remaining after this transaction
     }[];
 };
 
@@ -99,6 +100,7 @@ export async function getPrintData(transactionId: number): Promise<PrintData | n
             waterCost: record ? (record.usage * record.rate_snapshot) : 0,
             maintenanceCost: record?.maintenance_snapshot || 0,
             billAmount: record?.bill_amount || 0,
+            remaining: record ? (record.bill_amount - record.paid_amount) : 0,
         };
     });
 

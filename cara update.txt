@@ -1,0 +1,29 @@
+1. Cek Branch Sekarang
+Saat ini Bapak berada di branch master (atau main). Ini adalah branch utama yang langsung terhubung ke aplikasi yang sedang berjalan (Live).
+
+2. Cara Kerja yang Aman (Branching)
+Sesuai keinginan Bapak untuk memperbaiki bug tanpa mengganggu file utama, Bapak sebaiknya membuat Branch Baru. Caranya:
+
+Di terminal komputer lokal Bapak (VS Code), jalankan:
+
+bash
+# Membuat branch baru bernama 'dev' atau 'perbaikan-bug'
+git checkout -b perbaikan-bug
+3. Alur Kerjanya nanti:
+Bapak edit-edit kodingan di branch perbaikan-bug tersebut.
+Jika sudah selesai dan sudah Bapak tes di komputer lokal sudah oke, Bapak simpan (commit):
+bash
+git add .
+git commit -m "update: perbaikan fitur pencarian"
+git push origin perbaikan-bug
+Kodingan di VPS tidak akan berubah selama Bapak belum menggabungkannya (merge) ke branch master.
+4. Cara Deploy (Kalau sudah siap):
+Nanti kalau Bapak sudah yakin 100% perbaikannya sudah beres, Bapak gabungkan ke master:
+
+bash
+git checkout master
+git merge perbaikan-bug
+git push origin master
+Baru setelah itu Bapak lakukan git pull dan npm run build di VPS.
+
+Mau saya bantu buatkan branch baru sekarang, Pak? 😊🛠️🚀_

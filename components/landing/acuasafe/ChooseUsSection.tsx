@@ -193,11 +193,7 @@ export function ChooseUsSection() {
                                 whileInView={{ opacity: 1, x: 0 }}
                                 viewport={{ once: true }}
                                 transition={{ duration: 1.5 }}
-                                className="relative block z-[1]"
-                                style={{
-                                    marginRight: "-140px",
-                                    top: "100px"
-                                }}
+                                className="relative block z-[1] lg:mr-[-140px] lg:top-[100px]"
                             >
                                 {/* image with white border frame */}
                                 <figure

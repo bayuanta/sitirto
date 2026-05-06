@@ -32,6 +32,11 @@ const fontMsStufi = localFont({
 export const metadata: Metadata = {
   title: "PAMSIMAS Tirtowening - Web Admin",
   description: "Sistem Manajemen PAMSIMAS Desa Kemasan",
+  icons: {
+    icon: "/acuasafe/images/pamsimas-logo.png",
+    shortcut: "/acuasafe/images/pamsimas-logo.png",
+    apple: "/acuasafe/images/pamsimas-logo.png",
+  },
 };
 
 export default function RootLayout({

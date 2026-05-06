@@ -79,7 +79,12 @@ export default function PrintClient({ data, initialFormat }: { data: PrintData, 
                                     {formatRupiah(d.billAmount).replace('Rp', '')}
                                 </td>
                                 <td className="py-1 text-right font-bold font-mono">
-                                    {formatRupiah(d.amount).replace('Rp', '')}
+                                    <div>{formatRupiah(d.amount).replace('Rp', '')}</div>
+                                    {d.remaining > 0 && (
+                                        <div className="text-[8px] text-rose-600 font-bold leading-none mt-0.5">
+                                            KEKURANGAN: {formatRupiah(d.remaining).replace('Rp', '')}
+                                        </div>
+                                    )}
                                 </td>
                             </tr>
                         ))}
@@ -228,7 +233,14 @@ export default function PrintClient({ data, initialFormat }: { data: PrintData, 
                                             <tr key={idx}>
                                                 <td>{formatBulan(d.month, d.year)} <span className="text-gray-400">({d.usage}m³)</span></td>
                                                 <td className="text-right font-mono">{formatRupiah(d.billAmount).replace('Rp', '')}</td>
-                                                <td className="text-right font-mono font-bold">{formatRupiah(d.amount).replace('Rp', '')}</td>
+                                                <td className="text-right font-mono font-bold">
+                                                    <div>{formatRupiah(d.amount).replace('Rp', '')}</div>
+                                                    {d.remaining > 0 && (
+                                                        <div className="text-[7px] text-rose-600 font-bold leading-none">
+                                                            KEKURANGAN: {formatRupiah(d.remaining).replace('Rp', '')}
+                                                        </div>
+                                                    )}
+                                                </td>
                                             </tr>
                                         ))}
                                     </tbody>

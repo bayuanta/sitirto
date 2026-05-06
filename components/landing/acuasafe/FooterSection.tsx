@@ -42,11 +42,11 @@ export function FooterSection() {
                             Hubungi <span className="text-[#00d1f9]">Kami</span> untuk Layanan Terbaik
                         </h3>
                         <a
-                            href="tel:+62123456789"
+                            href="tel:+6285867714590"
                             className="flex items-center gap-3 text-white bg-[#00d1f9] px-6 py-3 rounded-full font-bold hover:bg-white hover:text-[#002c8f] transition-all"
                         >
                             <Phone className="w-5 h-5" />
-                            (0123) 456-789
+                            085867714590
                         </a>
                     </div>
                 </div>
@@ -72,7 +72,7 @@ export function FooterSection() {
                             </Link>
 
                             <p className="text-white/70 text-sm mb-6 leading-relaxed">
-                                Unit usaha pengelolaan air bersih BUMDes Karya Lestari Manunggal untuk masyarakat Desa Tirtowening.
+                                Unit usaha pengelolaan air bersih BUMDes Karya Lestari Manunggal untuk masyarakat Desa Kemasan.
                             </p>
 
                             <div className="text-white/70 text-sm space-y-1">
@@ -88,18 +88,18 @@ export function FooterSection() {
                             <ul className="space-y-4">
                                 <li className="flex gap-3 text-white/70 text-sm">
                                     <MapPin className="w-5 h-5 text-[#00d1f9] shrink-0 mt-0.5" />
-                                    <span>Desa Tirtowening, Kecamatan [Kecamatan], Kabupaten [Kabupaten]</span>
+                                    <span>Desa Kemasan, Kecamatan Sawit, Kabupaten Boyolali</span>
                                 </li>
                                 <li className="flex gap-3 text-white/70 text-sm">
                                     <Phone className="w-5 h-5 text-[#00d1f9] shrink-0" />
-                                    <a href="tel:+62123456789" className="hover:text-[#00d1f9] transition-colors">
-                                        (0123) 456-789
+                                    <a href="tel:+6285867714590" className="hover:text-[#00d1f9] transition-colors">
+                                        085867714590
                                     </a>
                                 </li>
                                 <li className="flex gap-3 text-white/70 text-sm">
                                     <Mail className="w-5 h-5 text-[#00d1f9] shrink-0" />
-                                    <a href="mailto:pamsimas@tirtowening.desa.id" className="hover:text-[#00d1f9] transition-colors">
-                                        pamsimas@tirtowening.desa.id
+                                    <a href="mailto:tirtoweningkemasan@gmail.com" className="hover:text-[#00d1f9] transition-colors">
+                                        tirtoweningkemasan@gmail.com
                                     </a>
                                 </li>
                             </ul>

@@ -16,11 +16,14 @@ import {
     Filter,
     Pencil,
     RotateCcw,
-    X,
     Settings,
     GripVertical,
-    MapPin, // Added MapPin
-    Share2, Camera
+    MapPin,
+    Share2, 
+    Camera,
+    AlertTriangle,
+    Droplets,
+    CheckCircle2
 } from "lucide-react";
 import * as htmlToImage from 'html-to-image';
 import { TagihanImageExport } from "@/components/TagihanImageExport";
@@ -80,7 +83,7 @@ import {
     getBulkInputMeterData,
     updateRouteOrder,
     assignCustomerGroup,
-    getAreas, // Added getAreas
+    getAreas,
     type CustomerSearch,
     type ActiveRate
 } from "./actions";
@@ -135,6 +138,7 @@ export default function InputMeteranPage() {
     const [customers, setCustomers] = useState<CustomerWithRate[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState("");
+    const [showYearDialog, setShowYearDialog] = useState(false);
 
     // Inputs: { [customerId]: currentMeterValue }
     const [inputs, setInputs] = useState<Record<number, string>>({});
@@ -193,7 +197,7 @@ export default function InputMeteranPage() {
 
     useEffect(() => {
         loadData();
-    }, [selectedMonth, selectedYear, searchTerm, selectedGroup, selectedArea]); // Added selectedArea
+    }, [selectedMonth, selectedYear, searchTerm, selectedGroup, selectedArea]);
 
     // Persist Group Selection
     useEffect(() => {
@@ -244,7 +248,6 @@ export default function InputMeteranPage() {
 
     const handleStartEditRate = (id: number, c: CustomerWithRate) => {
         setEditingRateId(id);
-        // Initialize with current values
         if (!rateOverrides[id]) {
             setRateOverrides(prev => ({
                 ...prev,
@@ -284,7 +287,6 @@ export default function InputMeteranPage() {
             ? parseInt(manualMeterLast[id] || "0")
             : customer.meter_lalu;
 
-        // Only validate if NOT in replacement mode
         if (!meterReplacements[id] && current < customer.meter_lalu) {
             toast.error(`Meter akhir tidak boleh lebih kecil dari meter lalu (${customer.meter_lalu})`);
             return;
@@ -299,8 +301,6 @@ export default function InputMeteranPage() {
         formData.append("bulan", selectedMonth.toString());
         formData.append("tahun", selectedYear.toString());
         formData.append("is_replacement", meterReplacements[id] ? "true" : "false");
-
-        // Add rate overrides
         formData.append("rate_override", getEffectiveRate(customer).toString());
         formData.append("maintenance_override", getEffectiveMaintenance(customer).toString());
 
@@ -309,42 +309,65 @@ export default function InputMeteranPage() {
         if (res.error) {
             toast.error(res.error);
         } else {
-            // Show informative toast based on auto-debit status
             if (res.auto_debit_applied) {
                 const formatCurrency = (val: number) => `Rp ${val.toLocaleString("id-ID")}`;
-
                 if (res.bill_status === 'paid') {
-                    toast.success(
-                        `✅ Berhasil! Tagihan ${formatCurrency(res.bill_amount)} Lunas (Auto-debit Saldo). Sisa saldo: ${formatCurrency(res.remaining_balance)}`,
-                        { duration: 5000 }
-                    );
-                } else if (res.bill_status === 'partial') {
-                    toast.success(
-                        `✅ Berhasil! Terbayar ${formatCurrency(res.auto_debit_amount)} dari ${formatCurrency(res.bill_amount)} (Auto-debit Saldo). Sisa tagihan: ${formatCurrency(res.bill_amount - res.auto_debit_amount)}`,
-                        { duration: 5000 }
-                    );
+                    toast.success(`✅ Tagihan ${formatCurrency(res.bill_amount)} Lunas (Auto-debit Saldo).`, { duration: 5000 });
                 }
             } else {
                 toast.success(`Data ${customer.nama} berhasil disimpan!`);
             }
-
-            // Mark as saved locally
             setCustomers(prev => prev.map(c => c.id === id ? { ...c, is_saved: true } : c));
         }
 
         setSavingIds(prev => prev.filter(pid => pid !== id));
     };
 
+    const handleGroupChange = (group: 'A' | 'B' | 'ALL') => {
+        setSelectedGroup(group);
+        localStorage.setItem('meter_reading_group', group);
+    };
+
+    const handleKeyDown = (e: React.KeyboardEvent, customer: CustomerWithRate, index: number) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            handleSaveRow(customer.id);
+            if (index < filteredCustomers.length - 1) {
+                const nextCustomer = filteredCustomers[index + 1];
+                setTimeout(() => {
+                    inputRefs.current[nextCustomer.id]?.focus();
+                    setFocusedCustomerId(nextCustomer.id);
+                }, 100);
+            }
+        } else if (e.key === 'Tab') {
+            e.preventDefault();
+            if (e.shiftKey) {
+                if (index > 0) {
+                    const prevCustomer = filteredCustomers[index - 1];
+                    inputRefs.current[prevCustomer.id]?.focus();
+                    setFocusedCustomerId(prevCustomer.id);
+                }
+            } else {
+                if (index < filteredCustomers.length - 1) {
+                    const nextCustomer = filteredCustomers[index + 1];
+                    inputRefs.current[nextCustomer.id]?.focus();
+                    setFocusedCustomerId(nextCustomer.id);
+                }
+            }
+        } else if (e.key === ' ') {
+            e.preventDefault();
+            if (!customer.is_saved && customer.prev_usage !== undefined) {
+                const effectiveMeterLast = meterReplacements[customer.id] ? parseInt(manualMeterLast[customer.id] || "0") : customer.meter_lalu;
+                handleInputChange(customer.id, String(effectiveMeterLast + customer.prev_usage));
+            }
+        }
+    };
+
     const handleSaveAll = async () => {
-        // Find all saveable rows
         const toSave = filteredCustomers.filter(c => {
             const val = inputs[c.id];
             if (!val) return false;
-
-            const effectiveMeterLast = meterReplacements[c.id]
-                ? parseInt(manualMeterLast[c.id] || "0")
-                : c.meter_lalu;
-
+            const effectiveMeterLast = meterReplacements[c.id] ? parseInt(manualMeterLast[c.id] || "0") : c.meter_lalu;
             return parseInt(val) >= effectiveMeterLast && !c.is_saved;
         });
 
@@ -354,13 +377,11 @@ export default function InputMeteranPage() {
         }
 
         toast.loading(`Menyimpan ${toSave.length} data...`);
-
         let successCount = 0;
+        
         await Promise.all(toSave.map(async (c) => {
             const val = inputs[c.id];
-            const effectiveMeterLast = meterReplacements[c.id]
-                ? parseInt(manualMeterLast[c.id] || "0")
-                : c.meter_lalu;
+            const effectiveMeterLast = meterReplacements[c.id] ? parseInt(manualMeterLast[c.id] || "0") : c.meter_lalu;
 
             const formData = new FormData();
             formData.append("pelanggan_id", c.id.toString());
@@ -369,8 +390,6 @@ export default function InputMeteranPage() {
             formData.append("bulan", selectedMonth.toString());
             formData.append("tahun", selectedYear.toString());
             formData.append("is_replacement", meterReplacements[c.id] ? "true" : "false");
-
-            // Add rate overrides
             formData.append("rate_override", getEffectiveRate(c).toString());
             formData.append("maintenance_override", getEffectiveMaintenance(c).toString());
 
@@ -385,73 +404,13 @@ export default function InputMeteranPage() {
         if (successCount > 0) toast.success(`${successCount} data berhasil disimpan!`);
     };
 
-    // GROUP CHANGE HANDLER
-    const handleGroupChange = (group: 'A' | 'B' | 'ALL') => {
-        setSelectedGroup(group);
-        localStorage.setItem('meter_reading_group', group);
-        // Data will reload automatically via useEffect dependency
-    };
-
-    // KEYBOARD NAVIGATION HANDLER
-    const handleKeyDown = (e: React.KeyboardEvent, customer: CustomerWithRate, index: number) => {
-        if (e.key === 'Enter') {
-            e.preventDefault();
-
-            // Save current row
-            handleSaveRow(customer.id);
-
-            // Move to next customer in filtered list
-            if (index < filteredCustomers.length - 1) {
-                const nextCustomer = filteredCustomers[index + 1];
-                setTimeout(() => {
-                    inputRefs.current[nextCustomer.id]?.focus();
-                    setFocusedCustomerId(nextCustomer.id);
-                }, 100); // Small delay to ensure save completes
-            } else {
-                // End of list notification
-                toast.success(`✅ Input Kelompok ${selectedGroup} Selesai!`, {
-                    description: `Semua ${filteredCustomers.length} pelanggan telah diinput.`
-                });
-            }
-        } else if (e.key === 'Tab') {
-            e.preventDefault(); // Prevent default tab behavior
-            
-            if (e.shiftKey) {
-                // Move to PREVIOUS customer
-                if (index > 0) {
-                    const prevCustomer = filteredCustomers[index - 1];
-                    inputRefs.current[prevCustomer.id]?.focus();
-                    setFocusedCustomerId(prevCustomer.id);
-                }
-            } else {
-                // Move to NEXT customer
-                if (index < filteredCustomers.length - 1) {
-                    const nextCustomer = filteredCustomers[index + 1];
-                    inputRefs.current[nextCustomer.id]?.focus();
-                    setFocusedCustomerId(nextCustomer.id);
-                }
-            }
-        } else if (e.key === ' ') {
-            // Spacebar as shortcut to autofill recommendation
-            e.preventDefault();
-            if (!customer.is_saved && customer.prev_usage !== undefined) {
-                const effectiveMeterLast = meterReplacements[customer.id]
-                    ? parseInt(manualMeterLast[customer.id] || "0")
-                    : customer.meter_lalu;
-                handleInputChange(customer.id, String(effectiveMeterLast + customer.prev_usage));
-            }
-        }
-    };
-
-    // ROUTE EDITOR HANDLERS
     const handleOpenRouteEditor = () => {
-        setRouteOrder([...customers]); // Clone current order
+        setRouteOrder([...customers]);
         setShowRouteEditor(true);
     };
 
     const handleDragEnd = (event: DragEndEvent) => {
         const { active, over } = event;
-
         if (over && active.id !== over.id) {
             setRouteOrder((items) => {
                 const oldIndex = items.findIndex((item) => item.id === active.id);
@@ -462,95 +421,57 @@ export default function InputMeteranPage() {
     };
 
     const handleSaveRouteOrder = async () => {
-        const updates = routeOrder.map((c, idx) => ({
-            id: c.id,
-            order: idx + 1
-        }));
-
+        const updates = routeOrder.map((c, idx) => ({ id: c.id, order: idx + 1 }));
         const result = await updateRouteOrder(updates, selectedGroup as string);
-
         if (result.success) {
-            toast.success(`Urutan rute Kelompok ${selectedGroup} berhasil disimpan`);
+            toast.success(`Urutan rute berhasil disimpan`);
             setShowRouteEditor(false);
-            loadData(); // Reload with new order
+            loadData();
         } else {
             toast.error(result.error || 'Gagal menyimpan urutan');
         }
     };
 
-    // DND SENSORS
     const sensors = useSensors(
         useSensor(PointerSensor),
-        useSensor(KeyboardSensor, {
-            coordinateGetter: sortableKeyboardCoordinates,
-        })
+        useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
     );
 
     const handleExportImage = async () => {
         if (!exportRef.current) return;
-        
         const hasSaved = filteredCustomers.some(c => c.is_saved);
         if (!hasSaved) {
-            toast.error("Belum ada data tagihan yang tersimpan untuk dibagikan.");
+            toast.error("Belum ada data tagihan untuk dibagikan.");
             return;
         }
-
         try {
             setIsExporting(true);
-            toast.loading("Mempersiapkan gambar tagihan...", { id: 'export-toast' });
-
-            // Small delay to ensure the component is rendered properly off-screen
+            toast.loading("Menyiapkan gambar...", { id: 'export-toast' });
             await new Promise(resolve => setTimeout(resolve, 500));
-
-            const dataUrl = await htmlToImage.toJpeg(exportRef.current, { 
-                quality: 0.95,
-                backgroundColor: '#ffffff',
-                pixelRatio: 2 // High resolution
-            });
-
-            // If Web Share API is available (usually on mobile)
+            const dataUrl = await htmlToImage.toJpeg(exportRef.current, { quality: 0.95, backgroundColor: '#ffffff', pixelRatio: 2 });
             if (navigator && navigator.share) {
-                try {
-                    const blob = await (await fetch(dataUrl)).blob();
-                    const file = new File([blob], `Tagihan_Kel_${selectedGroup}_${MONTHS[selectedMonth-1]}_${selectedYear}.jpg`, { type: 'image/jpeg' });
-                    await navigator.share({
-                        title: 'Daftar Tagihan Pamsimas',
-                        text: `Daftar Tagihan Air Pamsimas Kelompok ${selectedGroup} Bulan ${MONTHS[selectedMonth-1]} ${selectedYear}`,
-                        files: [file]
-                    });
-                    toast.success("Gambar berhasil dibagikan!", { id: 'export-toast' });
-                } catch (shareError: any) {
-                    // Fallback to download if share is aborted or fails
-                    if (shareError.name !== 'AbortError') {
-                        triggerDownload(dataUrl);
-                    }
-                    toast.dismiss('export-toast');
-                }
+                const blob = await (await fetch(dataUrl)).blob();
+                const file = new File([blob], `Tagihan_Kel_${selectedGroup}.jpg`, { type: 'image/jpeg' });
+                await navigator.share({ title: 'Tagihan Pamsimas', files: [file] });
+                toast.success("Gambar dibagikan!", { id: 'export-toast' });
             } else {
-                // Fallback to download for desktop
-                triggerDownload(dataUrl);
-                toast.success("Gambar berhasil diunduh!", { id: 'export-toast' });
+                const link = document.createElement('a');
+                link.download = `Tagihan_Kel_${selectedGroup}.jpg`;
+                link.href = dataUrl;
+                link.click();
+                toast.success("Gambar diunduh!", { id: 'export-toast' });
             }
         } catch (error) {
-            console.error("Failed to generate image", error);
-            toast.error("Gagal membuat gambar tagihan.", { id: 'export-toast' });
+            toast.error("Gagal export gambar.", { id: 'export-toast' });
         } finally {
             setIsExporting(false);
         }
-    };
-
-    const triggerDownload = (dataUrl: string) => {
-        const link = document.createElement('a');
-        link.download = `Tagihan_Kel_${selectedGroup}_${MONTHS[selectedMonth-1]}_${selectedYear}.jpg`;
-        link.href = dataUrl;
-        link.click();
     };
 
     return (
         <TooltipProvider>
             <div className="bg-white rounded-[20px] border border-slate-200/60 shadow-sm p-6 min-h-[80vh] flex flex-col relative pb-24">
                 
-                {/* Off-screen export component */}
                 <TagihanImageExport 
                     ref={exportRef}
                     month={selectedMonth}
@@ -560,8 +481,6 @@ export default function InputMeteranPage() {
                     customers={filteredCustomers as any}
                 />
 
-                {/* GROUP TAB NAVIGATION */}
-                {/* --- HEADER TITLE & PROGRESS --- */}
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-4">
                     <div className="flex-1 w-full md:w-auto">
                         <h1 className="text-xl font-bold text-slate-900 tracking-tight">Pencatatan Meter</h1>
@@ -572,18 +491,17 @@ export default function InputMeteranPage() {
                     </div>
                 </div>
 
-                {/* --- HEADER --- */}
-                {/* --- UNIFIED TOOLBAR --- */}
-                <div className="bg-white p-2 rounded-2xl border border-slate-200 shadow-sm flex flex-col md:flex-row gap-4 justify-between items-center mb-6">
-
-                    {/* LEFT: Segmented Group Tabs */}
-                    <div className="bg-slate-100 p-1 rounded-xl flex gap-1 w-full md:w-auto">
+                {/* --- RESPONSIVE TOOLBAR --- */}
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6 bg-slate-50/50 md:bg-white p-3 md:p-0 rounded-2xl md:rounded-0 border md:border-0 border-slate-200 shadow-sm md:shadow-none">
+                    
+                    {/* 1. Group Selection - Full Width on Mobile, Compact on PC */}
+                    <div className="bg-slate-100 p-1 rounded-xl flex w-full md:w-auto">
                         {['A', 'B', 'ALL'].map((g) => (
                             <button
                                 key={g}
                                 onClick={() => handleGroupChange(g as 'A' | 'B' | 'ALL')}
                                 className={cn(
-                                    "flex-1 md:flex-none px-6 py-2 rounded-lg text-xs font-bold transition-all",
+                                    "flex-1 md:flex-none px-4 md:px-6 py-2 rounded-lg text-[10px] md:text-xs font-black transition-all whitespace-nowrap",
                                     selectedGroup === g
                                         ? "bg-white text-indigo-700 shadow-sm ring-1 ring-black/5"
                                         : "text-slate-500 hover:text-slate-700 hover:bg-slate-200/50"
@@ -594,15 +512,15 @@ export default function InputMeteranPage() {
                         ))}
                     </div>
 
-                    {/* RIGHT: Filters */}
-                    <div className="flex items-center gap-3 w-full md:w-auto overflow-x-auto pb-2 md:pb-0 justify-between md:justify-end">
-
-                        {/* Wilayah Filter */}
-                        <div className="relative">
-                            <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-500 z-10" />
+                    {/* 2. Right Side Filters: Wilayah, Month, Year */}
+                    <div className="flex flex-col md:flex-row items-center gap-2 md:gap-3 w-full md:w-auto">
+                        
+                        {/* Wilayah - Full Width Mobile, Fixed Width PC */}
+                        <div className="relative w-full md:w-[180px]">
+                            <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400 z-10" />
                             <Select value={selectedArea} onValueChange={setSelectedArea}>
-                                <SelectTrigger className="pl-9 h-10 bg-slate-50 border-0 font-bold text-xs text-slate-700 w-[160px] rounded-lg focus:ring-2 focus:ring-indigo-500 transition-all hover:bg-slate-100">
-                                    <SelectValue placeholder="Semua Wilayah" />
+                                <SelectTrigger className="pl-9 h-11 md:h-10 bg-white border-slate-200 rounded-xl md:rounded-lg text-xs font-bold text-slate-700 focus:ring-2 focus:ring-indigo-500 shadow-sm md:shadow-none">
+                                    <SelectValue placeholder="Wilayah" />
                                 </SelectTrigger>
                                 <SelectContent className="z-[9999]">
                                     <SelectItem value="ALL" className="font-bold">Semua Wilayah</SelectItem>
@@ -613,173 +531,72 @@ export default function InputMeteranPage() {
                             </Select>
                         </div>
 
-                        <div className="h-6 w-px bg-slate-200 mx-1 hidden md:block"></div>
-
-                        {/* Date Filter */}
-                        <div className="flex items-center bg-slate-50 p-1 rounded-lg border border-slate-100/50">
-                            <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8 rounded-md text-slate-400 hover:text-indigo-600 hover:bg-white hover:shadow-sm"
-                                onClick={() => {
-                                    if (selectedMonth === 1) { setSelectedMonth(12); setSelectedYear(y => y - 1); }
-                                    else { setSelectedMonth(m => m - 1); }
-                                }}
-                            >
-                                <ChevronLeft className="h-4 w-4" />
-                            </Button>
-
-                            <div className="flex items-center gap-2 px-1">
-                                {/* FILTER BULAN (Lebar 160px agar nama bulan panjang muat) */}
-                                <div className="relative">
-                                    {/* Icon Kalender (Pointer Events None agar tembus klik) */}
-                                    <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none" />
-
-                                    <select
-                                        value={selectedMonth}
-                                        onChange={(e) => setSelectedMonth(Number(e.target.value))}
-                                        className="h-10 w-[160px] pl-10 pr-8 bg-white border border-slate-200 rounded-lg text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 appearance-none cursor-pointer hover:bg-slate-50 transition-colors uppercase"
-                                    >
-                                        {MONTHS.map((m, i) => (
-                                            <option key={i} value={i + 1} className="font-semibold text-slate-700">{m}</option>
-                                        ))}
-                                    </select>
-
-                                    {/* Chevron Custom (Pointer Events None) */}
-                                    <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none" />
-                                </div>
-
-                                <span className="text-slate-300 font-light text-lg pb-0.5 select-none">/</span>
-
-                                {/* FILTER TAHUN (Lebar 110px agar muat 4 digit + icon) */}
-                                <div className="relative">
-                                    <CalendarRange className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none" />
-
-                                    <select
-                                        value={selectedYear}
-                                        onChange={(e) => setSelectedYear(Number(e.target.value))}
-                                        className="h-10 w-[110px] pl-10 pr-8 bg-white border border-slate-200 rounded-lg text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 appearance-none cursor-pointer hover:bg-slate-50 transition-colors"
-                                    >
-                                        {[2025, 2026, 2027, 2028, 2029].map((y) => (
-                                            <option key={y} value={y} className="font-semibold text-slate-700">{y}</option>
-                                        ))}
-                                    </select>
-
-                                    <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none" />
-                                </div>
-                            </div>
-
-                            <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8 rounded-md text-slate-400 hover:text-indigo-600 hover:bg-white hover:shadow-sm"
-                                onClick={() => {
-                                    if (selectedMonth === 12) { setSelectedMonth(1); setSelectedYear(y => y + 1); }
-                                    else { setSelectedMonth(m => m + 1); }
-                                }}
-                            >
-                                <ChevronRight className="h-4 w-4" />
-                            </Button>
-                        </div>
-
-                        {/* Export Image Button */}
-                        <div className="h-6 w-px bg-slate-200 mx-1 hidden md:block"></div>
-                        <Button
-                            variant="outline"
-                            onClick={handleExportImage}
-                            disabled={isExporting || !filteredCustomers.some(c => c.is_saved)}
-                            className="h-10 bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100 hover:text-emerald-800 font-bold gap-2 ml-1"
-                        >
-                            {isExporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Share2 className="h-4 w-4" />}
-                            <span className="hidden md:inline">Bagikan WA</span>
-                        </Button>
-                    </div>
-                </div>
-
-
-                {/* --- OLD HEADER HIDDEN --- */}
-                <div className="hidden">
-                    <div className="flex-1">
-                        <div className="flex items-center gap-3 mb-2">
-                            <h1 className="text-xl font-bold text-slate-900 tracking-tight">Pencatatan Meter</h1>
-                            <Badge variant="secondary" className="rounded-full bg-indigo-50 text-indigo-700 border-indigo-100 border px-3 py-0.5 text-xs font-bold gap-1.5">
-                                <Calendar className="h-3 w-3" /> {MONTHS[selectedMonth - 1]} {selectedYear}
-                            </Badge>
-                        </div>
-                        <div className="flex items-center gap-3 w-full md:w-64">
-                            <Progress value={progressPercent} className="h-2 flex-1 rounded-full bg-slate-100" />
-                            <span className="text-[10px] font-bold text-slate-400">{progressPercent}% Selesai</span>
-                        </div>
-                    </div>
-
-                    {/* Date Controls */}
-                    {/* Date Controls - Professional Redesign */}
-                    {/* Date Controls - Modern Floating Pill Design */}
-                    <div className="flex items-center">
-                        <div className="flex items-center bg-white rounded-full shadow-sm border border-slate-200/80 p-1 pr-2 gap-1 transition-shadow hover:shadow-md">
-                            <Button
-                                variant="ghost"
-                                size="sm"
-                                className="h-9 w-9 p-0 rounded-full text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition-all active:scale-95"
-                                onClick={() => {
-                                    if (selectedMonth === 1) { setSelectedMonth(12); setSelectedYear(y => y - 1); }
-                                    else { setSelectedMonth(m => m - 1); }
-                                }}
-                            >
-                                <ChevronLeft className="h-5 w-5" />
-                            </Button>
-
-                            <div className="flex items-center gap-0.5 px-1">
+                        {/* Date Group: Month & Year Side-by-Side */}
+                        <div className="flex items-center gap-2 w-full md:w-auto">
+                            <div className="relative flex-1 md:w-[130px]">
+                                <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400 z-10" />
                                 <Select value={selectedMonth.toString()} onValueChange={(v) => setSelectedMonth(parseInt(v))}>
-                                    <SelectTrigger className="h-9 border-0 bg-transparent focus:ring-0 focus:ring-offset-0 text-sm font-extrabold text-slate-800 w-auto min-w-[140px] px-3 justify-center gap-2 hover:bg-slate-50 transition-colors rounded-full">
-                                        <span className="uppercase tracking-tight whitespace-nowrap">{MONTHS[selectedMonth - 1]}</span>
-                                    </SelectTrigger>
-                                    <SelectContent className="max-h-[300px] z-[9999]">
-                                        {MONTHS.map((m, i) => (
-                                            <SelectItem key={i} value={(i + 1).toString()} className="font-semibold cursor-pointer">
-                                                {m}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-
-                                <span className="text-slate-300 font-light text-lg pb-0.5">/</span>
-
-                                <Select value={selectedYear.toString()} onValueChange={(v) => setSelectedYear(parseInt(v))}>
-                                    <SelectTrigger className="h-9 border-0 bg-transparent focus:ring-0 focus:ring-offset-0 text-sm font-extrabold text-slate-800 w-auto min-w-[90px] px-3 justify-center hover:bg-slate-50 transition-colors rounded-full">
+                                    <SelectTrigger className="pl-9 h-11 md:h-10 bg-white border-slate-200 rounded-xl md:rounded-lg text-[10px] md:text-xs font-bold text-slate-700 shadow-sm md:shadow-none uppercase">
                                         <SelectValue />
                                     </SelectTrigger>
-                                    <SelectContent className="max-h-[300px] z-[9999]">
-                                        {[2026, 2027].map((y) => (
-                                            <SelectItem key={y} value={y.toString()} className="font-semibold cursor-pointer">
-                                                {y}
-                                            </SelectItem>
+                                    <SelectContent className="z-[9999]">
+                                        {MONTHS.map((m, i) => (
+                                            <SelectItem key={i} value={(i + 1).toString()} className="font-semibold uppercase text-[10px]">{m}</SelectItem>
                                         ))}
                                     </SelectContent>
                                 </Select>
                             </div>
 
-                            <Button
-                                variant="ghost"
-                                size="sm"
-                                className="h-9 w-9 p-0 rounded-full text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition-all active:scale-95"
-                                onClick={() => {
-                                    if (selectedMonth === 12) { setSelectedMonth(1); setSelectedYear(y => y + 1); }
-                                    else { setSelectedMonth(m => m + 1); }
-                                }}
-                            >
-                                <ChevronRight className="h-5 w-5" />
-                            </Button>
+                            <div className="relative flex-1 md:w-[100px]">
+                                <CalendarRange className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400 z-10" />
+                                <div className="h-11 md:h-10 bg-white border border-slate-200 rounded-xl md:rounded-lg flex items-center pl-9 pr-3 cursor-pointer hover:bg-slate-50 transition-colors shadow-sm md:shadow-none" onClick={() => setShowYearDialog(true)}>
+                                    <span className="text-[10px] md:text-xs font-black text-slate-700">{selectedYear}</span>
+                                    <ChevronDown className="ml-auto h-3 w-3 text-slate-400" />
+                                </div>
+
+                                <Dialog open={showYearDialog} onOpenChange={setShowYearDialog}>
+                                    <DialogContent className="max-w-[320px] rounded-[32px] p-0 overflow-hidden border-0 shadow-2xl">
+                                        <DialogHeader className="p-6 bg-indigo-600 text-white space-y-0">
+                                            <p className="text-[10px] font-black uppercase tracking-[0.2em] opacity-60 mb-1">Pilih Tahun</p>
+                                            <DialogTitle className="text-2xl font-black text-white">{selectedYear}</DialogTitle>
+                                        </DialogHeader>
+                                        <div className="p-4 bg-white">
+                                            <div className="grid grid-cols-3 gap-2">
+                                                {Array.from({ length: 12 }).map((_, i) => {
+                                                    const currentYear = new Date().getFullYear();
+                                                    const year = (currentYear - 5) + i;
+                                                    return (
+                                                        <button
+                                                            key={year}
+                                                            onClick={() => {
+                                                                setSelectedYear(year);
+                                                                setShowYearDialog(false);
+                                                            }}
+                                                            className={cn(
+                                                                "h-12 rounded-xl flex items-center justify-center text-xs font-black transition-all",
+                                                                selectedYear === year 
+                                                                    ? "bg-indigo-600 text-white shadow-lg shadow-indigo-200" 
+                                                                    : "text-slate-500 hover:bg-slate-100"
+                                                            )}
+                                                        >
+                                                            {year}
+                                                        </button>
+                                                    );
+                                                })}
+                                            </div>
+                                        </div>
+                                    </DialogContent>
+                                </Dialog>
+                            </div>
                         </div>
                     </div>
                 </div>
 
-                {/* --- SEARCH BAR --- */}
-                <div className="relative w-full md:w-full mb-6">
+                <div className="relative w-full mb-6">
                     <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
                     <Input
                         placeholder="Cari nama pelanggan atau No. SR..."
-                        className="pl-10 h-10 rounded-full bg-slate-50 border-0 focus-visible:ring-1 focus-visible:ring-indigo-500 font-medium text-xs placeholder:text-slate-400 w-full"
+                        className="pl-10 h-10 rounded-full bg-slate-50 border-0 font-medium text-xs w-full"
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                     />
@@ -791,7 +608,7 @@ export default function InputMeteranPage() {
                         <Button
                             variant="outline"
                             onClick={handleOpenRouteEditor}
-                            className="gap-2"
+                            className="gap-2 text-xs font-bold bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100 rounded-xl"
                         >
                             <Settings className="h-4 w-4" />
                             Atur Urutan Rute {selectedGroup}
@@ -799,296 +616,148 @@ export default function InputMeteranPage() {
                     </div>
                 )}
 
-                {/* --- LIST HEADER --- */}
-                <div className="hidden md:flex px-4 py-2 text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2 border-b border-slate-50">
-                    <div className="flex-1">Pelanggan</div>
-                    <div className="w-24 text-center">Bulan Lalu</div>
-                    <div className="w-24 text-center">Meter Lalu</div>
-                    <div className="w-32 text-center">Meter Saat Ini</div>
-                    <div className="w-20 text-center">Pemakaian</div>
-                    <div className="w-28 text-center">Tarif</div>
-                    <div className="w-24 text-right">Tagihan</div>
-                    <div className="w-12"></div>
-                </div>
-
-                {/* --- DATA LIST --- */}
-                <div className="flex-1 space-y-1">
+                <div className="flex-1 space-y-4">
                     {loading ? (
-                        Array.from({ length: 5 }).map((_, i) => <div key={i} className="h-16 bg-slate-50 rounded-xl animate-pulse" />)
+                        Array.from({ length: 5 }).map((_, i) => <div key={i} className="h-24 bg-slate-50 rounded-2xl animate-pulse" />)
                     ) : filteredCustomers.length === 0 ? (
-                        <div className="text-center py-12 text-slate-400 text-sm">Tidak ada pelanggan ditemukan.</div>
+                        <div className="text-center py-20 bg-slate-50 rounded-3xl border border-dashed border-slate-200">
+                            <Search className="h-12 w-12 text-slate-200 mx-auto mb-3" />
+                            <p className="text-slate-500 font-medium">Tidak ada pelanggan ditemukan.</p>
+                        </div>
                     ) : (
-                        filteredCustomers.map((c) => {
+                        filteredCustomers.map((c, index) => {
                             const currentVal = inputs[c.id] || "";
                             const currentNum = parseInt(currentVal);
                             const hasInput = currentVal !== "";
-
-                            // Use manual meter_last if in replacement mode
-                            const effectiveMeterLast = meterReplacements[c.id]
-                                ? parseInt(manualMeterLast[c.id] || "0")
-                                : c.meter_lalu;
-
+                            const effectiveMeterLast = meterReplacements[c.id] ? parseInt(manualMeterLast[c.id] || "0") : c.meter_lalu;
                             const usage = hasInput ? currentNum - effectiveMeterLast : null;
                             const isNegative = usage !== null && usage < 0;
                             const isSaving = savingIds.includes(c.id);
                             const isEditingThis = editingRateId === c.id;
                             const hasOverride = isRateOverridden(c);
-
-                            // Calculate Bill Preview
                             const effectiveRate = getEffectiveRate(c);
                             const effectiveMaintenance = getEffectiveMaintenance(c);
                             const computedBill = usage !== null && usage >= 0 ? (usage * effectiveRate) + effectiveMaintenance : null;
-                            const displayBill = c.is_saved && c.saved_bill_amount !== undefined && c.saved_bill_amount !== null ? c.saved_bill_amount : computedBill;
+                            const displayBill = c.is_saved && c.saved_bill_amount !== undefined ? c.saved_bill_amount : computedBill;
 
                             return (
-                                <div
-                                    key={c.id}
-                                    className={cn(
-                                        "flex flex-col md:flex-row items-center py-3 px-4 rounded-xl border border-l-4 transition-all md:h-auto min-h-[64px] gap-3 md:gap-0",
-                                        c.is_saved
-                                            ? "bg-emerald-50/40 border-emerald-100 border-l-emerald-400 opacity-60 hover:opacity-100"
-                                            : focusedCustomerId === c.id
-                                                ? "bg-indigo-50 border-indigo-100 border-l-indigo-600 shadow-sm"
-                                                : "bg-white hover:bg-slate-50 border-slate-100 border-l-transparent"
+                                <div key={c.id} className={cn(
+                                    "relative flex flex-col md:flex-row items-center p-4 md:py-3 md:px-4 rounded-2xl md:rounded-xl border border-l-4 transition-all gap-4 md:gap-0 overflow-hidden",
+                                    c.is_saved ? "bg-emerald-50/40 border-emerald-100 border-l-emerald-400 opacity-70" : focusedCustomerId === c.id ? "bg-indigo-50 border-indigo-200 border-l-indigo-600 shadow-md" : "bg-white border-slate-100 shadow-sm"
+                                )}>
+                                    {c.is_saved && (
+                                        <div className="md:hidden absolute top-0 right-0 bg-emerald-500 text-white text-[9px] font-black px-3 py-1 rounded-bl-xl uppercase tracking-tighter">Tersimpan</div>
                                     )}
-                                >
-                                    {/* 1. Customer Info */}
+
                                     <div className="flex items-center gap-3 flex-1 w-full md:w-auto">
-                                        <Avatar className="h-9 w-9 border border-slate-100 bg-white shadow-sm">
+                                        <Avatar className="h-10 w-10 md:h-9 md:w-9 border-2 border-white bg-white shadow-sm">
                                             <AvatarImage src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${c.nama}`} />
                                             <AvatarFallback className="bg-slate-100 text-slate-500 text-[10px] font-bold">{c.nama.substring(0, 2)}</AvatarFallback>
                                         </Avatar>
-                                        <div className="flex flex-col">
-                                            <p className="text-sm font-bold text-slate-900">{c.nama}</p>
+                                        <div className="flex flex-col min-w-0">
+                                            <p className="text-sm font-black text-slate-900 truncate">{c.nama}</p>
                                             <div className="flex items-center gap-2">
-                                                <span className="text-[10px] font-medium text-slate-500 bg-slate-100 px-1.5 rounded-sm">{c.no_pelanggan}</span>
-                                                {hasOverride && (
-                                                    <Badge className="bg-amber-100 text-amber-700 border-0 text-[9px] px-1.5 py-0 h-4">Override</Badge>
-                                                )}
+                                                <span className="text-[10px] font-black bg-slate-100 text-slate-500 px-1.5 rounded-sm">SR: {c.no_pelanggan}</span>
+                                                {hasOverride && <Badge className="bg-amber-100 text-amber-700 border-0 text-[8px] px-1.5 py-0 h-4 font-bold uppercase tracking-widest">Override</Badge>}
                                             </div>
                                         </div>
                                     </div>
 
-                                    {/* 1.5 Bulan Lalu Info */}
-                                    <div className="w-full md:w-24 flex justify-between md:justify-center items-center">
-                                        <span className="md:hidden text-xs font-bold text-slate-400">Bulan Lalu:</span>
-                                        {c.prev_usage !== undefined ? (
-                                            <div className="flex flex-col items-end md:items-center">
-                                                <span className="font-mono text-xs font-bold text-slate-600">{c.prev_usage} m³</span>
-                                                <span className="text-[10px] text-slate-400">{formatRupiah(c.prev_bill || 0).replace('Rp', '')}</span>
+                                    <div className="grid grid-cols-2 gap-2 w-full md:hidden">
+                                        <div className="bg-slate-50/80 p-2 rounded-xl border border-slate-100">
+                                            <p className="text-[9px] font-bold text-slate-400 uppercase mb-1">Bulan Lalu</p>
+                                            {c.prev_usage !== undefined ? (
+                                                <div className="flex flex-col"><span className="text-xs font-black text-slate-700">{c.prev_usage} m³</span></div>
+                                            ) : <span className="text-xs font-medium text-slate-300">-</span>}
+                                        </div>
+                                        <div className={cn("p-2 rounded-xl border", meterReplacements[c.id] ? "bg-amber-50 border-amber-100" : "bg-slate-50/80")}>
+                                            <p className="text-[9px] font-bold text-slate-400 uppercase mb-1">Meter Lalu</p>
+                                            <div className="flex flex-col gap-1">
+                                                {meterReplacements[c.id] ? (
+                                                    <Input type="number" className="h-6 w-full rounded-lg text-center text-[11px] font-black" value={manualMeterLast[c.id] || "0"} onChange={(e) => setManualMeterLast(prev => ({ ...prev, [c.id]: e.target.value }))} disabled={c.is_saved} />
+                                                ) : <span className="text-xs font-black text-slate-700">{c.meter_lalu}</span>}
+                                                <div className="flex items-center gap-1">
+                                                    <Switch checked={meterReplacements[c.id] || false} onCheckedChange={(checked) => { setMeterReplacements(prev => ({ ...prev, [c.id]: checked })); if (checked) setManualMeterLast(prev => ({ ...prev, [c.id]: "0" })); }} disabled={c.is_saved} className="h-3 w-5" />
+                                                    <span className="text-[8px] font-bold text-slate-400 uppercase">Ganti</span>
+                                                </div>
                                             </div>
-                                        ) : (
-                                            <span className="text-[10px] text-slate-300 font-medium italic">-</span>
-                                        )}
+                                        </div>
                                     </div>
 
-                                    {/* 2. Meter Lalu - WITH SWITCH */}
-                                    <div className="w-full md:w-24 flex flex-col gap-1.5">
-                                        <div className="flex justify-between md:justify-center items-center">
-                                            <span className="md:hidden text-xs font-medium text-slate-500">Lalu:</span>
+                                    <div className="hidden md:flex w-24 flex-col items-center">
+                                        <span className="text-[10px] font-bold text-slate-400">BULAN LALU</span>
+                                        <span className="font-mono text-xs font-black text-slate-700">{c.prev_usage ?? 0} m³</span>
+                                    </div>
+
+                                    <div className="hidden md:flex w-32 flex-col items-center gap-1">
+                                        <span className="text-[10px] font-bold text-slate-400 uppercase">Meter Lalu</span>
+                                        <div className="flex items-center gap-2">
                                             {meterReplacements[c.id] ? (
-                                                // Editable mode (replacement)
-                                                <Input
-                                                    type="number"
-                                                    placeholder="0"
-                                                    className="w-20 h-7 rounded-full text-center text-xs font-mono bg-amber-50 border-amber-200 focus-visible:ring-amber-500 text-amber-700 font-bold"
-                                                    value={manualMeterLast[c.id] || "0"}
-                                                    onChange={(e) => setManualMeterLast(prev => ({ ...prev, [c.id]: e.target.value }))}
-                                                    disabled={c.is_saved}
-                                                />
-                                            ) : (
-                                                // Locked mode (default)
-                                                <span className="font-mono bg-slate-50 px-2 py-0.5 rounded text-slate-600 text-xs">{c.meter_lalu}</span>
-                                            )}
-                                        </div>
-
-                                        {/* Switch for Meter Replacement */}
-                                        <div className="flex items-center gap-1.5 justify-center">
-                                            <Switch
-                                                id={`replace-${c.id}`}
-                                                checked={meterReplacements[c.id] || false}
-                                                onCheckedChange={(checked) => {
-                                                    setMeterReplacements(prev => ({ ...prev, [c.id]: checked }));
-                                                    if (checked) {
-                                                        setManualMeterLast(prev => ({ ...prev, [c.id]: "0" }));
-                                                    }
-                                                }}
-                                                disabled={c.is_saved}
-                                                className="h-4 w-7 data-[state=checked]:bg-amber-500"
-                                            />
-                                            <label
-                                                htmlFor={`replace-${c.id}`}
-                                                className={cn(
-                                                    "text-[9px] cursor-pointer transition-colors",
-                                                    meterReplacements[c.id] ? "text-amber-600 font-medium" : "text-slate-400"
-                                                )}
-                                            >
-                                                Ganti Meter
-                                            </label>
+                                                <Input type="number" className="w-16 h-7 text-center text-xs font-black bg-amber-50 border-amber-200" value={manualMeterLast[c.id] || "0"} onChange={(e) => setManualMeterLast(prev => ({ ...prev, [c.id]: e.target.value }))} disabled={c.is_saved} />
+                                            ) : <span className="font-mono text-xs font-black text-slate-700 bg-slate-50 px-2 py-0.5 rounded">{c.meter_lalu}</span>}
+                                            <div className="flex items-center gap-1">
+                                                <Switch checked={meterReplacements[c.id] || false} onCheckedChange={(checked) => { setMeterReplacements(prev => ({ ...prev, [c.id]: checked })); if (checked) setManualMeterLast(prev => ({ ...prev, [c.id]: "0" })); }} disabled={c.is_saved} className="h-3.5 w-6" />
+                                                <span className="text-[8px] font-black text-slate-400">GANTI</span>
+                                            </div>
                                         </div>
                                     </div>
 
-                                    {/* 3. Input Area */}
-                                    <div className="w-full md:w-32 flex flex-col justify-center items-center py-1 gap-1">
-                                        <div className="relative w-full md:w-24">
+                                    <div className="w-full md:w-40 flex flex-col items-center gap-1.5">
+                                        <div className="relative w-full md:w-32">
+                                            <div className="md:hidden absolute -top-4 left-0"><p className="text-[9px] font-black text-indigo-500 uppercase tracking-widest">Meter Sekarang</p></div>
                                             <Input
                                                 ref={(el) => { if (el) inputRefs.current[c.id] = el; }}
                                                 type="number"
-                                                placeholder="0"
+                                                placeholder="Input Angka..."
                                                 className={cn(
-                                                    "rounded-full text-center font-bold h-9 bg-slate-100 border-0 focus-visible:ring-2 focus-visible:ring-indigo-500 pr-2 transition-all",
-                                                    c.is_saved && "bg-transparent border-0 text-emerald-700 font-black",
-                                                    isNegative && "bg-rose-50 border-2 border-rose-200 text-rose-700 focus-visible:ring-rose-500"
+                                                    "rounded-xl text-center font-black h-12 md:h-10 transition-all",
+                                                    c.is_saved ? "bg-transparent border-0 text-emerald-700 text-lg" : "bg-slate-100 focus:bg-white focus:border-indigo-500",
+                                                    isNegative && "bg-rose-50 border-rose-300 text-rose-700"
                                                 )}
                                                 value={currentVal}
                                                 onChange={(e) => handleInputChange(c.id, e.target.value)}
                                                 onFocus={() => setFocusedCustomerId(c.id)}
-                                                onKeyDown={(e) => handleKeyDown(e, c, filteredCustomers.findIndex(cust => cust.id === c.id))}
+                                                onKeyDown={(e) => handleKeyDown(e, c, index)}
                                                 disabled={c.is_saved || isSaving}
                                             />
                                         </div>
                                         {!c.is_saved && c.prev_usage !== undefined && (
                                             <button 
-                                                onClick={() => handleInputChange(c.id, String(effectiveMeterLast + (c.prev_usage || 0)))}
-                                                className="text-[9px] text-indigo-500 hover:text-indigo-700 font-medium transition-colors cursor-pointer"
-                                                title="Klik atau tekan Spasi untuk mengisi otomatis"
-                                                tabIndex={-1}
+                                                onClick={() => {
+                                                    const lastMeterValue = meterReplacements[c.id] ? parseInt(manualMeterLast[c.id] || "0") : c.meter_lalu;
+                                                    handleInputChange(c.id, String(lastMeterValue + (c.prev_usage || 0)));
+                                                }}
+                                                className="md:hidden text-[10px] font-black text-indigo-600 bg-indigo-50 px-3 py-1 rounded-full border border-indigo-100 active:bg-indigo-200"
                                             >
-                                                Saran: {effectiveMeterLast + c.prev_usage}
+                                                Saran: {c.meter_lalu + (c.prev_usage || 0)} m³
                                             </button>
                                         )}
                                     </div>
 
-                                    {/* 4. Usage Indicator */}
-                                    <div className="w-full md:w-20 flex justify-between md:justify-center items-center gap-2">
-                                        <span className="md:hidden text-xs font-bold text-slate-400">Pakai:</span>
-                                        {usage !== null ? (
-                                            <div className={cn(
-                                                "flex items-center gap-1 text-xs font-bold px-2 py-1 rounded-full animate-in fade-in zoom-in duration-200",
-                                                isNegative ? "bg-rose-100 text-rose-600" : "bg-slate-100 text-slate-700"
-                                            )}>
-                                                {isNegative && <AlertCircle className="h-3 w-3" />}
-                                                {isNegative ? "Error" : `+${usage} m³`}
-                                            </div>
-                                        ) : (
-                                            <span className="text-[10px] text-slate-300 font-medium italic">-</span>
-                                        )}
+                                    <div className="w-full md:w-24 flex justify-between md:justify-center items-center">
+                                        <span className="md:hidden text-xs font-bold text-slate-400 uppercase">Pakai:</span>
+                                        <div className={cn("flex items-center gap-1 font-black text-sm md:text-xs", isNegative ? "text-rose-600" : usage !== null && usage > 0 ? "text-indigo-600" : "text-slate-400")}>
+                                            {isNegative ? <AlertTriangle className="h-3 w-3" /> : usage !== null && usage > 0 ? <Droplets className="h-3 w-3" /> : null}
+                                            {usage !== null ? `${usage} m³` : "-"}
+                                        </div>
                                     </div>
 
-                                    {/* 5. Rate Display / Edit - CLICK TO EDIT */}
-                                    <div className="w-full md:w-28 flex justify-center items-center">
-                                        {isEditingThis ? (
-                                            // Edit Mode: Show input fields
-                                            <div className="flex items-center gap-1 animate-in fade-in zoom-in-95 duration-200">
-                                                <div className="flex flex-col gap-1">
-                                                    <Input
-                                                        type="number"
-                                                        placeholder="Harga/m³"
-                                                        className="h-7 w-20 text-[11px] text-center rounded-md border-slate-200 focus-visible:ring-indigo-500"
-                                                        value={rateOverrides[c.id]?.rate || ""}
-                                                        onChange={(e) => handleRateChange(c.id, 'rate', e.target.value)}
-                                                    />
-                                                    <Input
-                                                        type="number"
-                                                        placeholder="Abonemen"
-                                                        className="h-7 w-20 text-[11px] text-center rounded-md border-slate-200 focus-visible:ring-indigo-500"
-                                                        value={rateOverrides[c.id]?.maintenance || ""}
-                                                        onChange={(e) => handleRateChange(c.id, 'maintenance', e.target.value)}
-                                                    />
-                                                </div>
-                                                <div className="flex flex-col gap-1">
-                                                    <Tooltip>
-                                                        <TooltipTrigger asChild>
-                                                            <Button
-                                                                size="icon"
-                                                                variant="ghost"
-                                                                className="h-7 w-7 rounded-full bg-emerald-100 text-emerald-600 hover:bg-emerald-200"
-                                                                onClick={handleConfirmRate}
-                                                            >
-                                                                <Check className="h-3.5 w-3.5" />
-                                                            </Button>
-                                                        </TooltipTrigger>
-                                                        <TooltipContent>Konfirmasi</TooltipContent>
-                                                    </Tooltip>
-                                                    <Tooltip>
-                                                        <TooltipTrigger asChild>
-                                                            <Button
-                                                                size="icon"
-                                                                variant="ghost"
-                                                                className="h-7 w-7 rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200"
-                                                                onClick={() => handleResetRate(c.id, c)}
-                                                            >
-                                                                <RotateCcw className="h-3.5 w-3.5" />
-                                                            </Button>
-                                                        </TooltipTrigger>
-                                                        <TooltipContent>Reset ke Default</TooltipContent>
-                                                    </Tooltip>
-                                                </div>
-                                            </div>
-                                        ) : (
-                                            // Display Mode: Show text with edit icon
-                                            <button
-                                                onClick={() => handleStartEditRate(c.id, c)}
-                                                disabled={c.is_saved}
-                                                className={cn(
-                                                    "group flex flex-col items-center gap-0.5 px-2 py-1 rounded-lg transition-all",
-                                                    !c.is_saved && "hover:bg-slate-100 cursor-pointer",
-                                                    c.is_saved && "cursor-default"
-                                                )}
-                                            >
-                                                <div className="flex items-center gap-1.5">
-                                                    <span className={cn(
-                                                        "text-[11px] font-medium",
-                                                        hasOverride ? "text-amber-700" : "text-slate-400"
-                                                    )}>
-                                                        {formatRupiah(getEffectiveRate(c))}/m³
-                                                    </span>
-                                                    {!c.is_saved && (
-                                                        <Pencil className="h-3 w-3 text-slate-300 group-hover:text-indigo-500 transition-colors" />
-                                                    )}
-                                                </div>
-                                                <span className={cn(
-                                                    "text-[10px]",
-                                                    hasOverride ? "text-amber-600" : "text-slate-300"
-                                                )}>
-                                                    +{formatRupiah(getEffectiveMaintenance(c))}
-                                                </span>
-                                            </button>
-                                        )}
+                                    <div className="w-full md:w-28 flex justify-between md:justify-center items-center border-t border-slate-50 md:border-0 pt-2 md:pt-0">
+                                        <span className="md:hidden text-xs font-bold text-slate-400 uppercase tracking-tighter">Tagihan:</span>
+                                        <div className="text-right">
+                                            <p className={cn("text-sm font-black", c.is_saved ? "text-emerald-700" : "text-slate-900")}>
+                                                {displayBill !== null ? formatRupiah(displayBill) : "-"}
+                                            </p>
+                                        </div>
                                     </div>
 
-                                    {/* 6. Tagihan Preview */}
-                                    <div className="w-full md:w-24 flex justify-between md:justify-end items-center md:pr-2">
-                                        <span className="md:hidden text-xs font-bold text-slate-400">Tagihan:</span>
-                                        {displayBill !== null ? (
-                                            <span className="font-mono text-sm font-black text-slate-800">
-                                                {formatRupiah(displayBill).replace('Rp', '')}
-                                            </span>
-                                        ) : (
-                                            <span className="text-[10px] text-slate-300 font-medium italic">-</span>
-                                        )}
-                                    </div>
-
-                                    {/* 7. Action Button */}
-                                    <div className="w-full md:w-12 flex justify-end mt-2 md:mt-0">
+                                    <div className="w-full md:w-16 flex justify-center mt-2 md:mt-0">
                                         {c.is_saved ? (
-                                            <div className="h-8 w-8 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center">
-                                                <Check className="h-4 w-4" />
-                                            </div>
+                                            <div className="h-9 w-9 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center shadow-sm"><CheckCircle2 className="h-6 w-6" /></div>
                                         ) : (
-                                            <Button
-                                                size="icon"
-                                                variant="ghost"
-                                                className={cn(
-                                                    "h-8 w-8 rounded-full transition-all",
-                                                    hasInput && !isNegative
-                                                        ? "bg-indigo-600 text-white hover:bg-indigo-700 shadow-md transform hover:scale-105"
-                                                        : "text-slate-300 bg-slate-50 hover:bg-slate-100 cursor-not-allowed"
-                                                )}
-                                                disabled={!hasInput || isNegative || isSaving}
-                                                onClick={() => handleSaveRow(c.id)}
-                                            >
-                                                {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                                            <Button size="sm" onClick={() => handleSaveRow(c.id)} disabled={!hasInput || isNegative || isSaving} className={cn("h-11 w-full md:h-9 md:w-9 rounded-xl md:rounded-full font-black", hasInput && !isNegative ? "bg-indigo-600 text-white shadow-lg shadow-indigo-200" : "bg-slate-100 text-slate-300")}>
+                                                {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-5 w-5 md:h-4 md:w-4" />}
+                                                <span className="md:hidden ml-2 font-black">SIMPAN DATA</span>
                                             </Button>
                                         )}
                                     </div>
@@ -1097,71 +766,61 @@ export default function InputMeteranPage() {
                         })
                     )}
                 </div>
-
-                {/* --- FLOATING BOTTOM ACTION BAR --- */}
-                {filteredCustomers.some(c => inputs[c.id] && !c.is_saved) && (
-                    <div className="fixed bottom-6 left-0 right-0 flex justify-center pointer-events-none z-50 animate-in slide-in-from-bottom-6 duration-300">
-                        <div className="bg-slate-900/90 backdrop-blur-md text-white px-2 py-2 pr-6 rounded-full shadow-2xl flex items-center gap-4 pointer-events-auto border border-slate-700/50">
-                            <div className="bg-indigo-600 h-9 w-9 rounded-full flex items-center justify-center animate-pulse">
-                                <Save className="h-4 w-4" />
-                            </div>
-                            <div className="text-xs">
-                                <p className="font-bold">Perubahan Belum Disimpan</p>
-                                <p className="text-slate-400">Pastikan data sudah benar</p>
-                            </div>
-                            <Button
-                                size="sm"
-                                className="rounded-full bg-white text-slate-900 hover:bg-slate-200 font-bold ml-2 h-8"
-                                onClick={handleSaveAll}
-                            >
-                                Simpan Semua
-                            </Button>
-                        </div>
+                
+                {selectedGroup !== 'ALL' && (
+                    <div className="fixed bottom-6 right-6 z-50 md:hidden">
+                        <Button onClick={handleSaveAll} className="h-14 w-14 rounded-full bg-indigo-600 text-white shadow-2xl flex items-center justify-center border-4 border-white hover:scale-110 transition-all">
+                            <Save className="h-6 w-6" />
+                        </Button>
                     </div>
                 )}
-            </div>
+                
+                <div className="hidden md:flex fixed bottom-8 right-8 z-50">
+                    <Button onClick={handleSaveAll} className="h-14 px-8 rounded-full bg-indigo-600 text-white shadow-2xl font-black gap-3 border-4 border-white hover:scale-105 transition-all">
+                        <Save className="h-6 w-6" />
+                        SIMPAN SEMUA DATA
+                    </Button>
+                </div>
 
-            {/* ROUTE EDITOR DIALOG */}
-            <Dialog open={showRouteEditor} onOpenChange={setShowRouteEditor}>
-                <DialogContent className="max-w-2xl max-h-[80vh] overflow-hidden flex flex-col">
-                    <DialogHeader>
-                        <DialogTitle>Atur Urutan Rute Kelompok {selectedGroup}</DialogTitle>
-                        <DialogDescription>
-                            Drag dan drop untuk mengatur urutan sesuai rute lapangan
-                        </DialogDescription>
-                    </DialogHeader>
+                {/* --- ROUTE EDITOR DIALOG --- */}
+                <Dialog open={showRouteEditor} onOpenChange={setShowRouteEditor}>
+                    <DialogContent className="max-w-2xl max-h-[80vh] flex flex-col p-0 overflow-hidden rounded-[24px]">
+                        <DialogHeader className="p-6 pb-2">
+                            <DialogTitle className="text-xl font-bold">Atur Urutan Rute - Kelompok {selectedGroup}</DialogTitle>
+                            <DialogDescription>
+                                Geser dan lepas (drag & drop) untuk mengatur urutan rute penagihan.
+                            </DialogDescription>
+                        </DialogHeader>
 
-                    <div className="flex-1 overflow-y-auto pr-2 space-y-2">
-                        <DndContext
-                            sensors={sensors}
-                            collisionDetection={closestCenter}
-                            onDragEnd={handleDragEnd}
-                        >
-                            <SortableContext
-                                items={routeOrder.map(c => c.id)}
-                                strategy={verticalListSortingStrategy}
+                        <div className="flex-1 overflow-y-auto p-6 pt-2">
+                            <DndContext
+                                sensors={sensors}
+                                collisionDetection={closestCenter}
+                                onDragEnd={handleDragEnd}
                             >
-                                {routeOrder.map((customer) => (
-                                    <SortableCustomerItem
-                                        key={customer.id}
-                                        id={customer.id}
-                                        customer={customer}
-                                    />
-                                ))}
-                            </SortableContext>
-                        </DndContext>
-                    </div>
+                                <SortableContext
+                                    items={routeOrder.map(c => c.id)}
+                                    strategy={verticalListSortingStrategy}
+                                >
+                                    <div className="space-y-2">
+                                        {routeOrder.map((customer) => (
+                                            <SortableCustomerItem key={customer.id} id={customer.id} customer={customer} />
+                                        ))}
+                                    </div>
+                                </SortableContext>
+                            </DndContext>
+                        </div>
 
-                    <div className="flex justify-end gap-2 pt-4 border-t">
-                        <Button variant="outline" onClick={() => setShowRouteEditor(false)}>
-                            Batal
-                        </Button>
-                        <Button onClick={handleSaveRouteOrder}>
-                            Simpan Urutan
-                        </Button>
-                    </div>
-                </DialogContent>
-            </Dialog>
-        </TooltipProvider >
+                        <div className="p-4 bg-slate-50 border-t flex justify-end gap-3">
+                            <Button variant="ghost" onClick={() => setShowRouteEditor(false)}>Batal</Button>
+                            <Button onClick={handleSaveRouteOrder} className="bg-indigo-600 hover:bg-indigo-700 font-bold">
+                                Simpan Urutan Baru
+                            </Button>
+                        </div>
+                    </DialogContent>
+                </Dialog>
+
+            </div>
+        </TooltipProvider>
     );
 }

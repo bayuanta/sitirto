@@ -21,11 +21,12 @@ export async function getDashboardStats() {
         // Note: For large datasets, this aggregation should be improved via RPC or monthly summary table.
         // For now, client-side aggregation of recent records is acceptable or simpler queries.
 
-        // We fetch ALL unpaid or partial records for arrears
+        // We fetch ALL unpaid or partial records for arrears, but ONLY for active customers
         const { data: unpaidRecords } = await supabase
             .from("meter_records")
-            .select("bill_amount, paid_amount")
-            .neq("status", "paid");
+            .select("bill_amount, paid_amount, customers!inner(status)")
+            .neq("status", "paid")
+            .eq("customers.status", "active");
 
         let totalArrears = 0;
         if (unpaidRecords) {
@@ -175,9 +176,10 @@ export async function getTopDebtors() {
         .select(`
             bill_amount, 
             paid_amount, 
-            customer:customers(id, name, area:areas(name))
+            customer:customers!inner(id, name, status, area:areas(name))
         `)
-        .neq("status", "paid");
+        .neq("status", "paid")
+        .eq("customer.status", "active");
 
     if (error || !data) return [];
 
@@ -259,8 +261,9 @@ export async function getPaymentStatusStats() {
     // Get counts for current year
     const { data: records, error } = await supabase
         .from("meter_records")
-        .select("status")
-        .eq("year", currentYear);
+        .select("status, customers!inner(status)")
+        .eq("year", currentYear)
+        .eq("customers.status", "active");
 
     if (error || !records) {
         return {
@@ -294,8 +297,9 @@ export async function getPaymentStatistics(year: number) {
     // Fetch all meter records for the selected year
     const { data: records, error } = await supabase
         .from("meter_records")
-        .select("month, bill_amount, paid_amount")
-        .eq("year", year);
+        .select("month, bill_amount, paid_amount, customers!inner(status)")
+        .eq("year", year)
+        .eq("customers.status", "active");
 
     if (error || !records) {
         // Return empty data if error

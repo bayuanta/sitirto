@@ -1,6 +1,7 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import { revalidatePath } from "next/cache";
 
 // ============================================
 // TYPES
@@ -292,6 +293,8 @@ export async function createDeposit(
             }
         });
 
+        revalidatePath("/setoran");
+        
         return {
             success: true,
             message: `Berhasil menyetor ${new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(totalCash)}`,
@@ -399,6 +402,8 @@ export async function deleteDeposit(depositId: number): Promise<{ success: boole
             };
         }
 
+        revalidatePath("/setoran");
+        
         return {
             success: true,
             message: "Setoran berhasil dihapus"

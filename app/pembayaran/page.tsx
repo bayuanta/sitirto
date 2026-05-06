@@ -200,14 +200,20 @@ export default function PembayaranPage() {
     const isEnough = cashNum >= remainingToPay;
 
     // --- ACTION LOGIC ---
-    const handleSubmitPayment = async () => {
+    const handleSubmitPayment = async (e?: React.MouseEvent) => {
+        if (e) e.preventDefault();
+        
         if (!selectedCustomer) return;
         if (selectedBillIds.length === 0) {
-            alert("Pilih minimal satu tagihan.");
+            alert("Silakan pilih minimal satu tagihan untuk dibayar.");
             return;
         }
-        if (method === 'cash' && cashNum <= 0 && depositUsedAmount <= 0) {
-            alert("Masukkan jumlah uang tunai yang valid.");
+
+        // Use the typed amount for both methods
+        const finalAmount = cashNum;
+        
+        if (finalAmount <= 0 && !useDeposit) {
+            alert("Jumlah pembayaran tidak valid. Masukkan jumlah uang atau gunakan deposit.");
             return;
         }
 
@@ -217,9 +223,9 @@ export default function PembayaranPage() {
             const result = await processPayment(
                 selectedCustomer.id,
                 selectedBillIds,
-                method === 'cash' ? cashNum : remainingToPay,
+                finalAmount,
                 method,
-                "Pembayaran via Web Admin", // Notes
+                "Pembayaran via Web Admin",
                 useDeposit
             );
 
@@ -281,7 +287,7 @@ export default function PembayaranPage() {
 
     // --- RENDER ---
     return (
-        <div className="flex flex-col h-[calc(100vh-10rem)] w-full gap-4 pb-0">
+        <div className="flex flex-col h-auto md:h-[calc(100vh-10rem)] w-full gap-4 pb-10 md:pb-0">
             {/* Note: Removed fixed positioning to respect Master Layout */}
 
             <div className="flex-1 grid grid-cols-12 gap-4 h-full min-h-0">
@@ -289,7 +295,7 @@ export default function PembayaranPage() {
                 LEFT COLUMN (60%) - MAIN CONTENT
                 SWITCHES: SEARCH LIST <-> BILL TABLE
                ========================================================================================= */}
-                <div className="col-span-12 md:col-span-7 h-full flex flex-col min-h-0">
+                <div className="col-span-12 md:col-span-7 h-auto md:h-full flex flex-col min-h-0">
                     {!selectedCustomer ? (
                         // --- MODE 1: SEARCH & LIST ---
                         <div className="bg-white rounded-2xl shadow-sm border border-slate-100 flex flex-col h-full overflow-hidden animate-in fade-in slide-in-from-left-4 duration-300">
@@ -478,7 +484,7 @@ export default function PembayaranPage() {
                                                         )} />
 
                                                         {/* CONTENT */}
-                                                        <div className="flex-1 px-3 py-2 flex flex-col sm:flex-row sm:items-center gap-3">
+                                                        <div className="flex-1 px-3 py-2 flex flex-col md:flex-row md:items-center gap-2 md:gap-3">
 
                                                             {/* CHECKBOX & MONTH */}
                                                             <div className="flex items-center gap-3 min-w-[120px]">
@@ -487,47 +493,48 @@ export default function PembayaranPage() {
                                                                     onCheckedChange={() => handleBillToggle(bill.id)}
                                                                     className="border-slate-300 data-[state=checked]:bg-indigo-600 w-4 h-4"
                                                                 />
-                                                                <div>
-                                                                    <h4 className="font-bold text-slate-800 text-sm">
+                                                                <div className="flex-1">
+                                                                    <h4 className="font-bold text-slate-800 text-xs md:text-sm leading-tight">
                                                                         {getMonthName(bill.month)} <span className="font-normal text-slate-500">{bill.year}</span>
                                                                     </h4>
-                                                                    <Badge variant="secondary" className="text-[10px] bg-slate-100 text-slate-600 font-mono px-1.5 h-4">
+                                                                    <Badge variant="secondary" className="text-[9px] md:text-[10px] bg-slate-100 text-slate-600 font-mono px-1.5 h-4 mt-0.5">
                                                                         {bill.usage} m³
                                                                     </Badge>
                                                                 </div>
                                                             </div>
 
-                                                            {/* METER READINGS */}
-                                                            <div className="flex flex-col items-start min-w-[80px]">
-                                                                <span className="text-[10px] font-bold text-slate-400 uppercase">Meter</span>
-                                                                <div className="text-[11px] font-mono text-slate-700 flex items-center gap-1">
-                                                                    <span>{bill.meter_last}</span>
-                                                                    <ArrowLeft className="w-3 h-3 text-slate-300 rotate-180" />
-                                                                    <span className="font-bold text-slate-900">{bill.meter_current}</span>
+                                                            <div className="flex flex-row items-center justify-between md:contents gap-2 border-t md:border-0 pt-2 md:pt-0">
+                                                                {/* METER READINGS */}
+                                                                <div className="flex flex-col items-start min-w-[70px]">
+                                                                    <span className="text-[9px] font-bold text-slate-400 uppercase">Meter</span>
+                                                                    <div className="text-[10px] md:text-[11px] font-mono text-slate-700 flex items-center gap-1">
+                                                                        <span>{bill.meter_last}</span>
+                                                                        <ArrowLeft className="w-2.5 h-2.5 text-slate-300 rotate-180" />
+                                                                        <span className="font-bold text-slate-900">{bill.meter_current}</span>
+                                                                    </div>
                                                                 </div>
-                                                            </div>
 
-                                                            {/* DETAILS */}
-                                                            <div className="flex-1 flex flex-col gap-0.5 text-[10px] text-slate-600">
-                                                                <div className="flex justify-between w-full max-w-[160px]">
-                                                                    <span>Air:</span>
-                                                                    <span className="font-medium">{formatCurrency(bill.water_cost)}</span>
+                                                                {/* DETAILS - HIDDEN ON MOBILE */}
+                                                                <div className="hidden md:flex flex-1 flex-col gap-0.5 text-[10px] text-slate-600">
+                                                                    <div className="flex justify-between w-full max-w-[160px]">
+                                                                        <span>Air:</span>
+                                                                        <span className="font-medium">{formatCurrency(bill.water_cost)}</span>
+                                                                    </div>
+                                                                    <div className="flex justify-between w-full max-w-[160px]">
+                                                                        <span>Beban:</span>
+                                                                        <span className="font-medium">{formatCurrency(bill.maintenance_snapshot)}</span>
+                                                                    </div>
                                                                 </div>
-                                                                <div className="flex justify-between w-full max-w-[160px]">
-                                                                    <span>Beban:</span>
-                                                                    <span className="font-medium">{formatCurrency(bill.maintenance_snapshot)}</span>
-                                                                </div>
-                                                            </div>
 
-                                                            {/* AMOUNT */}
-                                                            <div className="text-right min-w-[90px]">
-                                                                <span className="text-[9px] font-bold text-slate-400 uppercase sm:hidden">Total</span>
-                                                                <p className="text-base font-black text-emerald-600 font-mono tracking-tight">
-                                                                    {formatCurrency(bill.remaining)}
-                                                                </p>
-                                                                {bill.status === 'partial' && (
-                                                                    <p className="text-[9px] text-amber-500 font-bold mt-0.5">SISA TAGIHAN</p>
-                                                                )}
+                                                                {/* AMOUNT */}
+                                                                <div className="text-right min-w-[90px]">
+                                                                    <p className="text-sm md:text-base font-black text-emerald-600 font-mono tracking-tight">
+                                                                        {formatCurrency(bill.remaining)}
+                                                                    </p>
+                                                                    {bill.status === 'partial' && (
+                                                                        <p className="text-[8px] md:text-[9px] text-amber-500 font-bold">SISA</p>
+                                                                    )}
+                                                                </div>
                                                             </div>
                                                         </div>
                                                     </div>
@@ -545,7 +552,7 @@ export default function PembayaranPage() {
                 RIGHT COLUMN (40%) - SECONDARY AREA
                 SWITCHES: DASHBOARD <-> PAYMENT PANEL
                ========================================================================================= */}
-                <div className="col-span-12 md:col-span-5 h-full flex flex-col min-h-0">
+                <div className="col-span-12 md:col-span-5 h-auto md:h-full flex flex-col min-h-0">
                     {!selectedCustomer ? (
                         // --- MODE 1: DASHBOARD STATS ---
                         <div className="bg-white rounded-2xl shadow-sm border border-slate-100 flex flex-col items-center justify-center p-6 h-full text-center space-y-4 animate-in fade-in zoom-in-95 duration-500 delay-100">
@@ -574,88 +581,105 @@ export default function PembayaranPage() {
                         </div>
                     ) : (
                         // --- MODE 2: PAYMENT EXECUTION PANEL ---
-                        <div className="bg-white rounded-2xl shadow-xl border border-indigo-100 flex flex-col h-full overflow-hidden animate-in slide-in-from-bottom-4 md:slide-in-from-right-4 duration-500 relative ring-4 ring-slate-50/50">
-                            {/* HEADER: DEPOSIT INFO */}
-                            <div className="bg-indigo-50/80 border-b border-indigo-100 px-4 py-3 flex items-center justify-between shrink-0 h-14">
-                                <div className="flex items-center gap-2 text-indigo-800">
-                                    <Wallet className="w-4 h-4" />
-                                    <span className="font-bold text-xs uppercase tracking-wider">Saldo Deposit</span>
-                                </div>
-                                <span className="font-mono font-black text-indigo-700 text-base">
-                                    {formatCurrency(selectedCustomer.credit_balance)}
-                                </span>
-                            </div>
-
-                            {/* BODY: SCROLLABLE IF NEEDED */}
-                            <div className="flex-1 overflow-y-auto p-4 space-y-4">
-                                {/* SUMMARY CARD */}
-                                <div className="bg-slate-800 rounded-xl p-4 text-white shadow-lg relative overflow-hidden group">
-                                    <div className="absolute top-0 right-0 p-2 opacity-10 group-hover:opacity-20 transition-opacity">
-                                        <Receipt className="w-16 h-16 -mr-2 -mt-2 transform rotate-12" />
+                        <div className="bg-white rounded-2xl shadow-xl border border-slate-200 flex flex-col h-full overflow-hidden animate-in slide-in-from-bottom-4 md:slide-in-from-right-4 duration-500 relative ring-1 ring-slate-200">
+                            {/* HEADER: DEPOSIT INFO (TIDIED UP) */}
+                            <div className="bg-indigo-600 px-4 py-2.5 flex items-center justify-between shrink-0 shadow-sm">
+                                <div className="flex items-center gap-2 text-indigo-100">
+                                    <div className="p-1 bg-white/10 rounded-lg">
+                                        <Wallet className="w-3.5 h-3.5" />
                                     </div>
-                                    <p className="text-slate-400 text-[10px] font-bold uppercase tracking-wider mb-1">Total Tagihan ({selectedBillIds.length} Item)</p>
-                                    <div className="text-2xl font-black font-mono tracking-tight">
-                                        {formatCurrency(totalSelected)}
+                                    <span className="font-black text-[10px] uppercase tracking-widest">Saldo Deposit</span>
+                                </div>
+                                <div className="bg-white/10 px-3 py-1 rounded-full backdrop-blur-md">
+                                    <span className="font-mono font-black text-white text-sm">
+                                        {formatCurrency(selectedCustomer.credit_balance)}
+                                    </span>
+                                </div>
+                            </div>
+                            {/* BODY: SCROLLABLE IF NEEDED */}
+                            <div className="flex-1 overflow-y-auto p-4 space-y-4">                                {/* SUMMARY CARD (TOTAL TAGIHAN) */}
+                                <div className="bg-slate-50 rounded-2xl p-5 border-2 border-slate-200 shadow-sm relative overflow-hidden">
+                                    <div className="flex justify-between items-start mb-4">
+                                        <div>
+                                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Total Tagihan</p>
+                                            <h4 className="text-3xl font-black text-slate-900 tracking-tighter">
+                                                {formatCurrency(totalSelected)}
+                                            </h4>
+                                        </div>
+                                        <div className="bg-white p-2 rounded-xl border border-slate-100 shadow-sm">
+                                            <Receipt className="w-5 h-5 text-indigo-500" />
+                                        </div>
+                                    </div>
+                                    
+                                    <div className="flex items-center justify-between text-[11px] font-bold text-slate-500 pt-3 border-t border-slate-100">
+                                        <span>Jumlah Item</span>
+                                        <span className="bg-slate-200 px-2 py-0.5 rounded-full text-slate-700">{selectedBillIds.length} Tagihan</span>
                                     </div>
 
                                     {useDeposit && depositUsedAmount > 0 && (
-                                        <div className="mt-2 pt-2 border-t border-slate-700/50 text-[10px] flex justify-between items-center text-indigo-200">
+                                        <div className="mt-2 flex justify-between items-center text-[11px] font-bold text-indigo-600">
                                             <span>Potongan Deposit</span>
-                                            <span className="font-mono font-bold">-{formatCurrency(depositUsedAmount)}</span>
+                                            <span>-{formatCurrency(depositUsedAmount)}</span>
                                         </div>
                                     )}
                                 </div>
 
+
                                 {/* PAYMENT INPUTS */}
-                                <div className="space-y-3">
+                                <div className="space-y-4">
                                     {/* DEPOSIT TOGGLE */}
                                     {selectedCustomer.credit_balance > 0 && (
                                         <div
                                             onClick={() => setUseDeposit(!useDeposit)}
                                             className={cn(
-                                                "flex items-center gap-3 p-2.5 rounded-lg border cursor-pointer transition-all select-none",
-                                                useDeposit ? "bg-indigo-50 border-indigo-200" : "bg-white border-slate-200 hover:border-slate-300"
+                                                "flex items-center gap-3 p-3 rounded-xl border-2 cursor-pointer transition-all select-none",
+                                                useDeposit ? "bg-indigo-50 border-indigo-500 shadow-sm" : "bg-white border-slate-100 hover:border-slate-200"
                                             )}
                                         >
-                                            <Checkbox checked={useDeposit} onCheckedChange={(c) => setUseDeposit(!!c)} className="border-slate-300 data-[state=checked]:bg-indigo-600 w-4 h-4" />
+                                            <Checkbox checked={useDeposit} onCheckedChange={(c) => setUseDeposit(!!c)} className="border-slate-300 data-[state=checked]:bg-indigo-600 w-5 h-5" />
                                             <div className="flex-1">
-                                                <p className="text-sm font-bold text-slate-700">Gunakan Deposit</p>
-                                                <p className="text-[10px] text-slate-500">Otomatis potong saldo</p>
+                                                <p className="text-sm font-black text-slate-700">Gunakan Deposit</p>
+                                                <p className="text-[10px] text-slate-500 font-medium">Otomatis potong saldo deposit</p>
                                             </div>
                                         </div>
                                     )}
 
-                                    {/* CASH INPUT (ONLY DISPLAY IF NEEDED OR CASH METHOD) */}
-                                    <div>
-                                        <div className="flex items-center justify-between mb-1.5">
-                                            <label className="text-[10px] font-bold text-slate-500 uppercase">Jumlah Uang</label>
+                                    {/* CASH INPUT */}
+                                    <div className="bg-slate-50 p-3 rounded-2xl border border-slate-200/60 shadow-inner">
+                                        <div className="flex items-center justify-between mb-2">
+                                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                                                Jumlah {method === 'cash' ? 'Uang Tunai' : 'Transfer'}
+                                            </label>
                                             <button
+                                                type="button"
                                                 onClick={() => setCashAmount(remainingToPay.toString())}
-                                                className="text-[11px] font-black bg-indigo-50 hover:bg-indigo-100 text-indigo-700 px-3 py-1.5 rounded-lg border border-indigo-100 transition-all uppercase tracking-wider shadow-sm"
+                                                className="text-[10px] font-black bg-indigo-600 text-white px-3 py-1.5 rounded-full shadow-lg shadow-indigo-200 active:scale-95 transition-all uppercase"
                                             >
-                                                Uang Pas
+                                                {method === 'cash' ? 'Uang Pas' : 'Sesuai Tagihan'}
                                             </button>
                                         </div>
                                         <div className="relative">
-                                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-base">Rp</span>
+                                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-lg">Rp</span>
                                             <Input
                                                 type="number"
                                                 value={cashAmount}
                                                 onChange={(e) => setCashAmount(e.target.value)}
                                                 placeholder="0"
-                                                className="h-11 pl-10 text-lg font-black text-slate-900 bg-slate-50 border-2 border-slate-200 focus:border-indigo-500 focus:ring-0 rounded-lg"
+                                                className="h-12 pl-10 text-xl font-black text-slate-900 bg-white border-0 focus:ring-2 focus:ring-indigo-500 rounded-xl shadow-sm"
                                             />
                                         </div>
 
                                         {/* CHANGE DISPLAY */}
-                                        {method === 'cash' && cashNum > 0 && (
-                                            <div className="mt-2 flex justify-between items-center px-2">
-                                                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                                                    {change > 0 ? "Sisa Deposit" : (change === 0 ? "Uang Pas" : "Sisa Tagihan (Sebagian)")}
+                                        {cashNum > 0 && (
+                                            <div className="mt-3 flex justify-between items-center px-1">
+                                                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                                                    {change > 0 
+                                                        ? "LEBIH BAYAR (DEPOSIT)" 
+                                                        : (change === 0 ? (method === 'cash' ? "UANG PAS" : "PAS") : "SISA KURANG")}
                                                 </span>
                                                 <span className={cn(
                                                     "font-mono font-black text-sm",
-                                                    change > 0 ? "text-indigo-600" : (change === 0 ? "text-emerald-600" : "text-amber-500")
+                                                    change > 0 ? "text-indigo-600" : (change === 0 ? "text-emerald-600" : "text-rose-500")
                                                 )}>
                                                     {formatCurrency(Math.abs(change))}
                                                 </span>
@@ -666,45 +690,62 @@ export default function PembayaranPage() {
                             </div>
 
                             {/* FOOTER ACTIONS */}
-                            <div className="p-4 bg-slate-50 border-t border-slate-200 flex flex-col gap-3 shrink-0">
+                            <div className="p-4 bg-white border-t border-slate-100 flex flex-col gap-4 shrink-0 shadow-[0_-10px_20px_rgba(0,0,0,0.02)]">
                                 {/* METHOD TOGGLE */}
-                                <div className="grid grid-cols-2 gap-2 bg-white p-1 rounded-xl border border-slate-200 shadow-sm">
+                                <div className="grid grid-cols-2 gap-2 bg-slate-100 p-1.5 rounded-2xl relative z-30">
                                     <button
-                                        onClick={() => setMethod('cash')}
+                                        type="button"
+                                        onClick={(e) => {
+                                            e.preventDefault();
+                                            setMethod('cash');
+                                        }}
                                         className={cn(
-                                            "flex items-center justify-center gap-2 h-9 rounded-lg text-xs font-bold transition-all",
-                                            method === 'cash' ? "bg-slate-900 text-white shadow-md" : "text-slate-500 hover:bg-slate-50"
+                                            "flex items-center justify-center gap-2 h-11 rounded-xl text-[11px] font-black transition-all active:scale-95",
+                                            method === 'cash' 
+                                                ? "bg-white text-indigo-700 shadow-md ring-1 ring-black/5" 
+                                                : "text-slate-500 hover:text-slate-700"
                                         )}
                                     >
-                                        <Banknote className="w-3.5 h-3.5" /> Tunai
+                                        <Banknote className="w-4 h-4" /> TUNAI
                                     </button>
                                     <button
-                                        onClick={() => setMethod('transfer')}
+                                        type="button"
+                                        onClick={(e) => {
+                                            e.preventDefault();
+                                            setMethod('transfer');
+                                        }}
                                         className={cn(
-                                            "flex items-center justify-center gap-2 h-9 rounded-lg text-xs font-bold transition-all",
-                                            method === 'transfer' ? "bg-slate-900 text-white shadow-md" : "text-slate-500 hover:bg-slate-50"
+                                            "flex items-center justify-center gap-2 h-11 rounded-xl text-[11px] font-black transition-all active:scale-95",
+                                            method === 'transfer' 
+                                                ? "bg-white text-indigo-700 shadow-md ring-1 ring-black/5" 
+                                                : "text-slate-500 hover:text-slate-700"
                                         )}
                                     >
-                                        <CreditCard className="w-3.5 h-3.5" /> Transfer
+                                        <CreditCard className="w-4 h-4" /> TRANSFER
                                     </button>
                                 </div>
 
                                 <Button
+                                    type="button"
                                     size="lg"
-                                    className="w-full h-12 text-sm font-black tracking-wide shadow-xl shadow-indigo-200 bg-indigo-600 hover:bg-indigo-700 active:scale-[0.98] transition-all"
-                                    onClick={handleSubmitPayment}
-                                    disabled={processing || selectedBillIds.length === 0 || (method === 'cash' && cashNum <= 0 && depositUsedAmount <= 0)}
+                                    className="w-full h-14 text-sm font-black tracking-widest shadow-2xl shadow-indigo-200 bg-indigo-600 hover:bg-indigo-700 rounded-2xl active:scale-[0.97] transition-all gap-3 relative z-30"
+                                    onClick={(e) => handleSubmitPayment(e)}
+                                    disabled={processing || selectedBillIds.length === 0 || (method === 'cash' && cashNum <= 0 && !useDeposit)}
                                 >
                                     {processing ? (
-                                        <Loader2 className="w-5 h-5 animate-spin" />
-                                    ) : (
                                         <div className="flex items-center gap-2">
-                                            <Receipt className="w-5 h-5" />
-                                            PROSES BAYAR
+                                            <Loader2 className="w-6 h-6 animate-spin" />
+                                            <span>MEMPROSES...</span>
                                         </div>
+                                    ) : (
+                                        <>
+                                            <Receipt className="w-6 h-6" />
+                                            PROSES BAYAR
+                                        </>
                                     )}
                                 </Button>
                             </div>
+
                         </div>
                     )}
                 </div>

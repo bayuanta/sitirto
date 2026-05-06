@@ -12,7 +12,7 @@ import { FooterSection } from "@/components/landing/acuasafe/FooterSection";
 
 export default function LandingPage() {
     return (
-        <main className="min-h-screen font-sans">
+        <main className="min-h-screen font-sans overflow-x-hidden">
             <Navbar />
 
             {/* 1. Hero Section */}

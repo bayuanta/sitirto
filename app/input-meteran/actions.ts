@@ -232,6 +232,8 @@ export async function saveMeterRecord(formData: FormData) {
 
         revalidatePath("/input-meteran");
         revalidatePath("/pembayaran");
+        revalidatePath("/laporan/tunggakan");
+        revalidatePath("/");
 
         return {
             success: true,
@@ -308,35 +310,35 @@ export async function getBulkInputMeterData(
         return [];
     }
 
-    // 2. Fetch Existing Records for THIS Period (Bulk)
+    // 2. Fetch ALL relevant meter records for these customers to avoid N+1 queries
+    // We fetch records that are either for the current period OR for any period before it
     const customerIds = customers.map((c: any) => c.id);
-    const { data: currentRecords } = await supabase
+    const { data: allRelatedRecords, error: recordsError } = await supabase
         .from("meter_records")
-        .select("customer_id, meter_current, meter_last, bill_amount")
-        .eq("month", month)
-        .eq("year", year)
-        .in("customer_id", customerIds);
+        .select("customer_id, month, year, meter_current, meter_last, bill_amount, usage")
+        .in("customer_id", customerIds)
+        .or(`and(year.eq.${year},month.eq.${month}),or(year.lt.${year},and(year.eq.${year},month.lt.${month}))`)
+        .order("year", { ascending: false })
+        .order("month", { ascending: false });
 
-    const currentRecordMap = new Map();
-    (currentRecords || []).forEach((r: any) => currentRecordMap.set(r.customer_id, r));
+    if (recordsError) {
+        console.error("Error fetching related records:", recordsError);
+        return [];
+    }
 
-    // 3. Process and Fetch Missing "Last Meters" (Server-Side Parallel)
-    const enrichedData = await Promise.all(customers.map(async (c: any) => {
-        const current = currentRecordMap.get(c.id);
+    // 3. Process records in memory
+    // For each customer, we want: 
+    // a) The record for THIS period (if exists)
+    // b) The most recent record BEFORE this period
+    const enrichedData = customers.map((c: any) => {
+        const customerRecords = (allRelatedRecords || []).filter(r => r.customer_id === c.id);
+        
+        const current = customerRecords.find(r => r.month === month && r.year === year);
+        const prevRecord = customerRecords.find(r => r.year < year || (r.year === year && r.month < month));
+
         let meter_lalu = 0;
         let is_saved = false;
         let current_meter_val = 0;
-
-        // Fetch the most recent record BEFORE the currently selected month/year
-        const { data: prevRecord } = await supabase
-            .from("meter_records")
-            .select("meter_current, usage, bill_amount")
-            .eq("customer_id", c.id)
-            .or(`year.lt.${year},and(year.eq.${year},month.lt.${month})`)
-            .order("year", { ascending: false })
-            .order("month", { ascending: false })
-            .limit(1)
-            .single();
 
         if (current) {
             // Already input for this month
@@ -365,7 +367,7 @@ export async function getBulkInputMeterData(
             rateName: c.rate?.name || "-",
             area_name: c.area?.name || "Lainnya"
         };
-    }));
+    });
 
     return enrichedData;
 }

@@ -20,6 +20,7 @@ import {
     DialogTitle,
     DialogTrigger,
     DialogFooter,
+    DialogDescription,
 } from "@/components/ui/dialog";
 import {
     Select,
@@ -75,6 +76,7 @@ import {
     Power,
     PowerOff,
     AlertTriangle,
+    AlertCircle,
     Image as ImageIcon
 } from "lucide-react";
 import {
@@ -349,90 +351,142 @@ function PelangganPageContent() {
                             <Plus className="mr-2 h-4 w-4" /> Tambah Pelanggan
                         </Button>
                     </DialogTrigger>
-                    <DialogContent className="sm:max-w-[700px] rounded-2xl max-h-[90vh] overflow-y-auto">
-                        <DialogHeader>
-                            <DialogTitle>{isEditMode ? "Edit Data Pelanggan" : "Tambah Pelanggan Baru"}</DialogTitle>
+                    <DialogContent className="sm:max-w-[700px] p-0 rounded-t-3xl sm:rounded-3xl max-h-[95vh] overflow-hidden flex flex-col border-none shadow-2xl">
+                        <DialogHeader className="p-6 pb-2">
+                            <DialogTitle className="text-xl font-black text-slate-900 flex items-center gap-2">
+                                <div className="h-8 w-8 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center">
+                                    {isEditMode ? <Pencil className="h-4 w-4" /> : <Plus className="h-5 w-5" />}
+                                </div>
+                                {isEditMode ? "Edit Data Pelanggan" : "Tambah Pelanggan Baru"}
+                            </DialogTitle>
+                            <DialogDescription className="text-xs font-medium text-slate-500">
+                                Lengkapi informasi pelanggan di bawah ini dengan benar.
+                            </DialogDescription>
                         </DialogHeader>
-                        <form onSubmit={handleSubmit} className="grid gap-6 py-4" key={editingCustomerData?.id || "new"}>
-
-                            {/* Data Diri */}
-                            <div className="space-y-4">
-                                <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2 pb-2 border-b border-slate-100">
-                                    <User className="h-3.5 w-3.5" /> Data Diri
-                                </h3>
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                    <div className="grid gap-2">
-                                        <Label htmlFor="no_pelanggan" className="text-xs font-bold text-slate-600">No. Sambungan (SR)</Label>
-                                        <Input id="no_pelanggan" name={isEditMode ? undefined : "no_pelanggan"} defaultValue={editingCustomerData?.no_pelanggan} placeholder="Contoh: SR-001" className="rounded-full bg-slate-50 border-slate-200" required disabled={isEditMode} />
-                                        {isEditMode && editingCustomerData && <input type="hidden" name="no_pelanggan" value={editingCustomerData.no_pelanggan} />}
-                                    </div>
-                                    <div className="grid gap-2">
-                                        <Label htmlFor="nama" className="text-xs font-bold text-slate-600">Nama Lengkap</Label>
-                                        <Input id="nama" name="nama" defaultValue={editingCustomerData?.nama} placeholder="Nama Pelanggan" className="rounded-full bg-slate-50 border-slate-200" required />
-                                    </div>
-                                    <div className="grid gap-2">
-                                        <Label htmlFor="hp" className="text-xs font-bold text-slate-600">No. HP / WA</Label>
-                                        <Input id="hp" name="hp" defaultValue={editingCustomerData?.hp} placeholder="08..." className="rounded-full bg-slate-50 border-slate-200" />
-                                    </div>
-                                    <div className="grid gap-2">
-                                        <Label htmlFor="wilayah" className="text-xs font-bold text-slate-600">Wilayah</Label>
-                                        <Select name="wilayah_id" defaultValue={editingCustomerData?.wilayah_id?.toString()} required>
-                                            <SelectTrigger className="rounded-full bg-slate-50 border-slate-200"><SelectValue placeholder="Pilih Wilayah" /></SelectTrigger>
-                                            <SelectContent>
-                                                {wilayahList.map((w) => (<SelectItem key={w.id} value={w.id.toString()}>{w.nama_wilayah}</SelectItem>))}
-                                            </SelectContent>
-                                        </Select>
-                                    </div>
-                                    <div className="grid gap-2">
-                                        <Label htmlFor="rate" className="text-xs font-bold text-slate-600">Golongan Tarif</Label>
-                                        <Select name="rate_id" defaultValue={(editingCustomerData as any)?.rate_id?.toString()} required>
-                                            <SelectTrigger className="rounded-full bg-slate-50 border-slate-200"><SelectValue placeholder="Pilih Golongan" /></SelectTrigger>
-                                            <SelectContent>
-                                                {ratesList.map((r) => (<SelectItem key={r.id} value={r.id.toString()}>{r.name} - {r.code}</SelectItem>))}
-                                            </SelectContent>
-                                        </Select>
-                                    </div>
-                                    <div className="grid gap-2">
-                                        <Label htmlFor="meter_reading_group" className="text-xs font-bold text-slate-600">Kel. Catat Meter</Label>
-                                        <Select name="meter_reading_group" defaultValue={editingCustomerData?.meter_reading_group || 'A'} required>
-                                            <SelectTrigger className="rounded-full bg-slate-50 border-slate-200"><SelectValue placeholder="Pilih Kelompok" /></SelectTrigger>
-                                            <SelectContent>
-                                                <SelectItem value="A">Kelompok A</SelectItem>
-                                                <SelectItem value="B">Kelompok B</SelectItem>
-                                            </SelectContent>
-                                        </Select>
-                                    </div>
-                                    <div className="col-span-2 grid gap-2">
-                                        <Label htmlFor="alamat" className="text-xs font-bold text-slate-600">Alamat Lengkap</Label>
-                                        <Input id="alamat" name="alamat" defaultValue={editingCustomerData?.alamat} placeholder="Jalan, RT/RW, Dusun" className="rounded-full bg-slate-50 border-slate-200" />
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Biaya Pasang */}
-                            {!isEditMode && (
+                        
+                        <div className="flex-1 overflow-y-auto px-6 py-2 custom-scrollbar">
+                            <form onSubmit={handleSubmit} id="customer-form" className="space-y-8 py-2" key={editingCustomerData?.id || "new"}>
+                                {/* SEKSI 1: DATA DIRI */}
                                 <div className="space-y-4">
-                                    <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2 pb-2 border-b border-slate-100">
-                                        <Hammer className="h-3.5 w-3.5" /> Biaya Pemasangan Baru
-                                    </h3>
+                                    <div className="flex items-center gap-2 mb-4">
+                                        <div className="h-1 w-8 bg-indigo-500 rounded-full"></div>
+                                        <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Data Identitas</h3>
+                                    </div>
+                                    
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                        <div className="grid gap-2">
-                                            <Label htmlFor="biaya_pasang" className="text-xs font-bold text-slate-600">Total Biaya Pasang (Rp)</Label>
-                                            <Input id="biaya_pasang" name="biaya_pasang" type="number" placeholder="0" className="rounded-full bg-slate-50 border-slate-200" />
-                                            <p className="text-[10px] text-slate-400">Kosongkan jika tidak ada biaya pasang.</p>
+                                        <div className="space-y-1.5">
+                                            <Label htmlFor="no_pelanggan" className="text-[11px] font-bold text-slate-500 ml-1">NOMOR SAMBUNGAN (SR)</Label>
+                                            <div className="relative">
+                                                <Input 
+                                                    id="no_pelanggan" 
+                                                    name={isEditMode ? undefined : "no_pelanggan"} 
+                                                    defaultValue={editingCustomerData?.no_pelanggan} 
+                                                    placeholder="Contoh: SR-001" 
+                                                    className="rounded-xl bg-slate-50 border-slate-200 h-11 focus:bg-white transition-all font-bold" 
+                                                    required 
+                                                    disabled={isEditMode} 
+                                                />
+                                                {isEditMode && editingCustomerData && <input type="hidden" name="no_pelanggan" value={editingCustomerData.no_pelanggan} />}
+                                            </div>
                                         </div>
-                                        <div className="grid gap-2">
-                                            <Label htmlFor="dp_pasang" className="text-xs font-bold text-slate-600">Bayar Uang Muka (DP)</Label>
-                                            <Input id="dp_pasang" name="dp_pasang" type="number" placeholder="0" className="rounded-full bg-slate-50 border-slate-200" />
+                                        
+                                        <div className="space-y-1.5">
+                                            <Label htmlFor="nama" className="text-[11px] font-bold text-slate-500 ml-1">NAMA LENGKAP</Label>
+                                            <Input id="nama" name="nama" defaultValue={editingCustomerData?.nama} placeholder="Masukkan nama lengkap" className="rounded-xl bg-slate-50 border-slate-200 h-11 focus:bg-white transition-all font-medium" required />
+                                        </div>
+
+                                        <div className="space-y-1.5">
+                                            <Label htmlFor="hp" className="text-[11px] font-bold text-slate-500 ml-1">NO. WHATSAPP</Label>
+                                            <div className="relative">
+                                                <Phone className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                                                <Input id="hp" name="hp" defaultValue={editingCustomerData?.hp} placeholder="08..." className="rounded-xl bg-slate-50 border-slate-200 h-11 pl-10 focus:bg-white transition-all" />
+                                            </div>
+                                        </div>
+
+                                        <div className="space-y-1.5">
+                                            <Label htmlFor="wilayah" className="text-[11px] font-bold text-slate-500 ml-1">WILAYAH TINGGAL</Label>
+                                            <Select name="wilayah_id" defaultValue={editingCustomerData?.wilayah_id?.toString()} required>
+                                                <SelectTrigger className="rounded-xl bg-slate-50 border-slate-200 h-11 font-medium"><SelectValue placeholder="Pilih Wilayah" /></SelectTrigger>
+                                                <SelectContent className="rounded-xl">
+                                                    {wilayahList.map((w) => (<SelectItem key={w.id} value={w.id.toString()}>{w.nama_wilayah}</SelectItem>))}
+                                                </SelectContent>
+                                            </Select>
+                                        </div>
+
+                                        <div className="space-y-1.5">
+                                            <Label htmlFor="rate" className="text-[11px] font-bold text-slate-500 ml-1">GOLONGAN TARIF</Label>
+                                            <Select name="rate_id" defaultValue={(editingCustomerData as any)?.rate_id?.toString()} required>
+                                                <SelectTrigger className="rounded-xl bg-slate-50 border-slate-200 h-11 font-medium"><SelectValue placeholder="Pilih Golongan" /></SelectTrigger>
+                                                <SelectContent className="rounded-xl">
+                                                    {ratesList.map((r) => (
+                                                        <SelectItem key={r.id} value={r.id.toString()}>
+                                                            <div className="flex flex-col">
+                                                                <span className="font-bold">{r.name}</span>
+                                                                <span className="text-[10px] text-slate-500">Kode: {r.code}</span>
+                                                            </div>
+                                                        </SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
+                                        </div>
+
+                                        <div className="space-y-1.5">
+                                            <Label htmlFor="meter_reading_group" className="text-[11px] font-bold text-slate-500 ml-1">KELOMPOK CATAT METER</Label>
+                                            <Select name="meter_reading_group" defaultValue={editingCustomerData?.meter_reading_group || 'A'} required>
+                                                <SelectTrigger className="rounded-xl bg-slate-50 border-slate-200 h-11 font-medium"><SelectValue placeholder="Pilih Kelompok" /></SelectTrigger>
+                                                <SelectContent className="rounded-xl">
+                                                    <SelectItem value="A">Kelompok A</SelectItem>
+                                                    <SelectItem value="B">Kelompok B</SelectItem>
+                                                </SelectContent>
+                                            </Select>
+                                        </div>
+
+                                        <div className="col-span-1 sm:col-span-2 space-y-1.5">
+                                            <Label htmlFor="alamat" className="text-[11px] font-bold text-slate-500 ml-1">ALAMAT LENGKAP</Label>
+                                            <Input id="alamat" name="alamat" defaultValue={editingCustomerData?.alamat} placeholder="Nama jalan, RT/RW, Dusun..." className="rounded-xl bg-slate-50 border-slate-200 h-11 focus:bg-white transition-all" />
                                         </div>
                                     </div>
                                 </div>
-                            )}
 
-                            <DialogFooter>
-                                <Button type="submit" className="rounded-full bg-indigo-600 hover:bg-indigo-700 w-full">Simpan Pelanggan</Button>
-                            </DialogFooter>
-                        </form>
+                                {/* SEKSI 2: BIAYA PASANG (HANYA UNTUK PELANGGAN BARU) */}
+                                {!isEditMode && (
+                                    <div className="p-5 rounded-2xl bg-slate-50 border border-slate-100 space-y-4">
+                                        <div className="flex items-center gap-2 mb-4">
+                                            <div className="h-1 w-8 bg-amber-500 rounded-full"></div>
+                                            <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Biaya Pemasangan</h3>
+                                        </div>
+                                        
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                            <div className="space-y-1.5">
+                                                <Label htmlFor="biaya_pasang" className="text-[11px] font-bold text-slate-500 ml-1">TOTAL BIAYA (RP)</Label>
+                                                <div className="relative">
+                                                    <CreditCard className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                                                    <Input id="biaya_pasang" name="biaya_pasang" type="number" placeholder="0" className="rounded-xl border-slate-200 h-11 pl-10 font-bold text-indigo-600 focus:bg-white transition-all" />
+                                                </div>
+                                            </div>
+                                            <div className="space-y-1.5">
+                                                <Label htmlFor="dp_pasang" className="text-[11px] font-bold text-slate-500 ml-1">UANG MUKA / DP (RP)</Label>
+                                                <Input id="dp_pasang" name="dp_pasang" type="number" placeholder="0" className="rounded-xl border-slate-200 h-11 font-bold text-emerald-600 focus:bg-white transition-all" />
+                                            </div>
+                                        </div>
+                                        <p className="text-[10px] text-slate-400 flex items-center gap-1.5 px-1">
+                                            <AlertCircle className="h-3 w-3" />
+                                            Biaya ini akan tercatat sebagai hutang pemasangan jika belum lunas.
+                                        </p>
+                                    </div>
+                                )}
+                            </form>
+                        </div>
+
+                        <div className="p-6 bg-white border-t border-slate-50 shadow-[0_-4px_20px_rgba(0,0,0,0.03)]">
+                            <Button 
+                                type="submit" 
+                                form="customer-form"
+                                className="rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-black text-sm h-12 w-full shadow-lg shadow-indigo-100 transition-all hover:scale-[1.02] active:scale-95"
+                            >
+                                {isEditMode ? "Simpan Perubahan" : "Konfirmasi & Simpan Pelanggan"}
+                            </Button>
+                        </div>
                     </DialogContent>
                 </Dialog>
             </div>
@@ -1020,6 +1074,8 @@ Mohon untuk segera melakukan pelunasan. Terima kasih.`;
             toast.success("Data berhasil dihapus!");
             // Reload records
             getMeterRecords(customer.id).then(setMeterRecords);
+            // Reload summary stats
+            getCustomerDetails(customer.id).then(setCustomerDetails);
             router.refresh();
         }
 
@@ -1220,6 +1276,11 @@ Mohon untuk segera melakukan pelunasan. Terima kasih.`;
                                         )}
                                     </div>
                                     <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm">
+                                        <div className="text-[10px] bg-emerald-50 text-emerald-600 px-2 py-1 rounded-md mb-2 inline-block font-bold">Saldo Deposit</div>
+                                        <div className="text-xl font-black text-slate-800">{formatCurrency(customerDetails.customer.credit_balance)}</div>
+                                        <p className="text-[10px] text-slate-500 mt-1">Saldo tersedia untuk bayar</p>
+                                    </div>
+                                    <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm col-span-2 sm:col-span-1">
                                         <div className="text-[10px] bg-blue-50 text-blue-600 px-2 py-1 rounded-md mb-2 inline-block font-bold">Rata-rata Pakai</div>
                                         <div className="text-xl font-black text-slate-800">{customerDetails.stats.avg_usage} m³</div>
                                         <p className="text-[10px] text-slate-500 mt-1">6 bulan terakhir</p>

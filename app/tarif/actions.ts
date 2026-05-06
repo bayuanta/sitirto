@@ -137,6 +137,8 @@ export async function updateRate(formData: FormData) {
         }
 
         revalidatePath("/tarif");
+        revalidatePath("/input-meteran");
+        revalidatePath("/pelanggan");
         return { success: true };
 
     } catch (err) {
@@ -191,6 +193,8 @@ export async function createRate(formData: FormData) {
         }
 
         revalidatePath("/tarif");
+        revalidatePath("/input-meteran");
+        revalidatePath("/pelanggan");
         return { success: true };
     } catch (err) {
         console.error("Error creating rate:", err);
@@ -207,6 +211,8 @@ export async function deleteRate(id: number) {
             return { error: "Gagal menghapus: Tarif ini mungkin sedang digunakan oleh Pelanggan." };
         }
         revalidatePath("/tarif");
+        revalidatePath("/input-meteran");
+        revalidatePath("/pelanggan");
         return { success: true };
     } catch (err: any) {
         console.error("Error deleting rate:", err);

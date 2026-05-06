@@ -59,26 +59,27 @@ export function ServiceSection() {
                 }}
             />
 
-            {/* Center Image - absolute bottom center */}
+            {/* Center Image - Responsive positioning */}
             <figure
-                className="absolute z-[1] hidden lg:block"
+                className="relative lg:absolute z-[1] mt-10 lg:mt-0"
                 style={{
                     left: "50%",
                     transform: "translateX(-50%)",
                     bottom: "0px",
-                    marginLeft: "25px"
+                    marginLeft: "0px"
                 }}
             >
                 <motion.div
                     animate={{ y: [0, -15, 0] }}
                     transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
+                    className="w-full max-w-[300px] lg:max-w-[438px] mx-auto"
                 >
                     <Image
                         src="/acuasafe/images/resource/service-1.png"
                         alt="Service"
                         width={438}
                         height={534}
-                        className="object-contain"
+                        className="w-full h-auto object-contain"
                     />
                 </motion.div>
             </figure>

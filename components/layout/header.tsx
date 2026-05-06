@@ -79,14 +79,6 @@ export function Header({ className, onMenuClick }: HeaderProps) {
 
                 {/* Actions */}
                 <div className="flex items-center gap-1 lg:gap-2">
-                    <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-10 w-10 lg:h-11 lg:w-11 rounded-full text-slate-500 hover:text-indigo-600 hover:bg-slate-50 relative"
-                    >
-                        <div className="absolute top-2.5 right-2.5 lg:top-3 lg:right-3.5 w-2 h-2 bg-rose-500 rounded-full ring-2 ring-white" />
-                        <Bell className="h-5 w-5" />
-                    </Button>
 
                     {/* Profile Dropdown */}
                     <DropdownMenu>
@@ -105,7 +97,7 @@ export function Header({ className, onMenuClick }: HeaderProps) {
                         <DropdownMenuContent align="end" className="w-56 rounded-xl shadow-lg border-slate-200 p-2">
                             <div className="px-3 py-2">
                                 <p className="text-sm font-bold text-slate-900">Admin Utama</p>
-                                <p className="text-xs text-slate-500">admin@pamsimas.id</p>
+                                <p className="text-xs text-slate-500">tirtoweningkemasan@gmail.com</p>
                             </div>
                             <DropdownMenuSeparator />
                             <DropdownMenuItem

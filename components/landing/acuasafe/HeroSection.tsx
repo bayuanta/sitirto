@@ -121,7 +121,7 @@ export function HeroSection() {
                             className="text-white text-[16px] lg:text-[18px] leading-[26px] lg:leading-[30px] mb-8 lg:mb-[42px]"
                         >
                             PAMSIMAS Tirtowening menyediakan layanan air bersih berkualitas untuk
-                            masyarakat Desa Tirtowening. Unit usaha BUMDes Karya Lestari Manunggal.
+                            masyarakat Desa Kemasan. Unit usaha BUMDes Karya Lestari Manunggal.
                         </motion.p>
 
                         <motion.div

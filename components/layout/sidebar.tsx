@@ -61,7 +61,7 @@ export function Sidebar({ isCollapsed, toggleSidebar, className, isMobile = fals
                 {/* Logo Area */}
                 <div className={cn("flex items-center gap-3 overflow-hidden transition-all duration-300", isCollapsed ? "w-0 p-0 opacity-0 hidden" : "w-auto opacity-100")}>
                     <div className="h-8 w-8 rounded-lg bg-indigo-600 flex items-center justify-center shadow-md shadow-indigo-200 shrink-0">
-                        <Hexagon className="h-4 w-4 text-white fill-current" />
+                        <Droplets className="h-4 w-4 text-white fill-current" />
                     </div>
                     <div>
                         <h1 className="text-xl font-extrabold tracking-tight text-slate-900 leading-none">PAMSIMAS</h1>
@@ -71,7 +71,7 @@ export function Sidebar({ isCollapsed, toggleSidebar, className, isMobile = fals
                 {/* Collapsed Logo */}
                 {isCollapsed && (
                     <div className="h-8 w-8 rounded-lg bg-indigo-600 flex items-center justify-center shadow-md shadow-indigo-200 shrink-0">
-                        <Hexagon className="h-4 w-4 text-white fill-current" />
+                        <Droplets className="h-4 w-4 text-white fill-current" />
                     </div>
                 )}
 
@@ -110,28 +110,6 @@ export function Sidebar({ isCollapsed, toggleSidebar, className, isMobile = fals
                 </div>
             )}
 
-            {/* Footer Profile - Compact */}
-            <div className="p-3 space-y-3 border-t border-slate-50 bg-slate-50/50">
-                <div className={cn(
-                    "flex items-center rounded-xl hover:bg-white transition-all cursor-pointer border border-transparent hover:border-slate-200 hover:shadow-sm",
-                    isCollapsed ? "justify-center p-1.5" : "gap-2 p-2"
-                )}>
-                    <Avatar className="h-8 w-8 border border-slate-200">
-                        <AvatarImage src="https://api.dicebear.com/7.x/avataaars/svg?seed=Admin" />
-                        <AvatarFallback>AD</AvatarFallback>
-                    </Avatar>
-
-                    {!isCollapsed && (
-                        <div className="flex-1 overflow-hidden">
-                            <p className="text-xs font-bold text-slate-800 truncate">Administrator</p>
-                        </div>
-                    )}
-
-                    {!isCollapsed && (
-                        <Settings className="h-3.5 w-3.5 text-slate-400 hover:text-indigo-600 transition-colors" />
-                    )}
-                </div>
-            </div>
         </div>
     );
 }

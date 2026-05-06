@@ -22,7 +22,7 @@ export async function checkBill(connectionNumber: string): Promise<{ success: bo
         const { data: customer, error: customerError } = await supabase
             .from("customers")
             .select("id, name, connection_number, address")
-            .eq("connection_number", connectionNumber)
+            .ilike("connection_number", connectionNumber)
             .single();
 
         if (customerError || !customer) {

@@ -1,6 +1,7 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import { revalidatePath } from "next/cache";
 
 // ============================================
 // TYPES - Water Bill Transactions
@@ -87,7 +88,8 @@ export async function getWaterBillTransactions(
                 address
             )
         `)
-        .order("created_at", { ascending: false });
+        .order("created_at", { ascending: false })
+        .limit(200);
 
     // Date filter
     if (startDate && endDate) {
@@ -182,7 +184,8 @@ export async function getInstallationPayments(
                 )
             )
         `)
-        .order("payment_date", { ascending: false });
+        .order("payment_date", { ascending: false })
+        .limit(200);
 
     // Date filter
     if (startDate && endDate) {
@@ -342,6 +345,14 @@ export async function deleteWaterTransaction(id: number) {
         if (deleteError) throw deleteError;
 
         console.log("[DELETE] Transaction deleted successfully");
+        
+        // REVALIDATE ALL RELATED PATHS
+        revalidatePath("/riwayat");
+        revalidatePath("/pembayaran");
+        revalidatePath("/pelanggan");
+        revalidatePath("/laporan/tunggakan");
+        revalidatePath("/");
+        
         return { success: true, message: "Transaksi pembayaran air berhasil dihapus." };
 
     } catch (error) {
@@ -397,6 +408,9 @@ export async function deleteInstallationPayment(id: number) {
             .eq("id", id);
 
         if (deleteError) throw deleteError;
+
+        revalidatePath("/riwayat");
+        revalidatePath("/pelanggan");
 
         return { success: true, message: "Pembayaran instalasi berhasil dihapus." };
 

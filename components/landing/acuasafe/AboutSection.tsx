@@ -19,14 +19,13 @@ export function AboutSection() {
                             className="relative block"
                         >
                             {/* Matches .about-section .image-box img { max-width: none; float: right; } */}
-                            <div className="relative text-right">
+                            <div className="relative text-center lg:text-right">
                                 <Image
                                     src="/acuasafe/images/resource/about-1.png"
                                     alt="About PAMSIMAS"
                                     width={570}
                                     height={570}
-                                    className="inline-block object-contain"
-                                    style={{ maxWidth: 'none' }}
+                                    className="inline-block w-full h-auto max-w-[570px] object-contain"
                                 />
                             </div>
                         </motion.div>

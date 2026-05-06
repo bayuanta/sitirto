@@ -249,36 +249,35 @@ export async function processPayment(
         let remainingFunds = availableFunds;
 
         const allocationDetails: any[] = [];
-        const updates: any[] = []; // Updates to run
 
         // 3. FIFO Allocation Loop
         for (const bill of bills) {
-            if (remainingFunds <= 0) break; // Stop if no money left
+            if (remainingFunds <= 0) break;
 
             const billRemaining = bill.remaining;
             let payForThisBill = 0;
+            let newStatus = 'paid';
 
             if (remainingFunds >= billRemaining) {
-                // Fully pay this bill
                 payForThisBill = billRemaining;
                 remainingFunds -= billRemaining;
-
-                updates.push({
-                    id: bill.id,
-                    paid_amount: bill.paid_amount + payForThisBill,
-                    status: 'paid'
-                });
+                newStatus = 'paid';
             } else {
-                // Partial pay
                 payForThisBill = remainingFunds;
                 remainingFunds = 0;
-
-                updates.push({
-                    id: bill.id,
-                    paid_amount: bill.paid_amount + payForThisBill,
-                    status: 'partial'
-                });
+                newStatus = 'partial';
             }
+
+            // EXECUTE UPDATE IMMEDIATELY FOR THIS BILL
+            const { error: billError } = await supabase
+                .from("meter_records")
+                .update({
+                    paid_amount: bill.paid_amount + payForThisBill,
+                    status: newStatus
+                })
+                .eq("id", bill.id);
+            
+            if (billError) throw billError;
 
             allocationDetails.push({
                 bill_id: bill.id,
@@ -289,40 +288,15 @@ export async function processPayment(
         }
 
         // 4. Calculate Final Credit
-        // If we used credit, we effectively emptied it first, then added leftovers.
-        // Actually: NewBalance = (OldCredit + Payment) - UsedForBills
-        // UsedForBills = AvailableFunds - RemainingFunds
-        // So NewBalance = RemainingFunds (Simple geometry!)
-
-        // Wait, if useCredit is false, we should NOT touch the old credit.
-        // But the requirement says "Credit Balance" is usually consumed automatically or explicitly.
-        // Let's assume UpdatedCredit = user selected.
-
         let finalCreditBalance = currentCredit;
-        let diffCredit = 0;
-
         if (useCredit) {
-            finalCreditBalance = remainingFunds; // Whatever is left becomes new credit
-            diffCredit = remainingFunds - currentCredit; // For logging? No need.
+            finalCreditBalance = remainingFunds; 
         } else {
-            // User didn't want to touch credit, but if they OVERPAID, it MUST go to credit?
-            // Usually yes. If I pay 50k for 10k bill, 40k becomes credit.
-            // So 'useCredit' really means "Start with explicit credit". 
-            // Any leftover ALWAYS goes to credit.
             finalCreditBalance = currentCredit + remainingFunds;
         }
 
-        // 5. EXECUTE DATABASE UPDATES (Sequential)
-
-        // A. Update Bills
-        for (const up of updates) {
-            const { error } = await supabase
-                .from("meter_records")
-                .update({ paid_amount: up.paid_amount, status: up.status })
-                .eq("id", up.id);
-            if (error) throw error;
-        }
-
+        // 5. EXECUTE DATABASE UPDATES (Bulk Optimized)
+        
         // B. Update Customer Credit
         const { error: creditError } = await supabase
             .from("customers")
@@ -349,6 +323,8 @@ export async function processPayment(
         if (txError) throw txError;
 
         revalidatePath("/pembayaran");
+        revalidatePath("/pelanggan");
+        revalidatePath("/laporan/tunggakan");
         revalidatePath("/");
 
         return {
