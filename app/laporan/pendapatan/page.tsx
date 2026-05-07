@@ -1,11 +1,6 @@
 import { Suspense } from "react";
 import {
-    getRevenueReportSummary,
-    getDailyRevenueTrend,
-    getWeeklyBreakdown,
-    getRevenueByPaymentMethod,
-    getRevenueByArea,
-    getDepositStatus,
+    getUnifiedRevenueReport,
     getTransactionsList
 } from "./actions";
 import {
@@ -70,8 +65,8 @@ export default async function RevenueReportPage({
         year = parseInt(params.year as string);
     }
 
-    // Fetch All Data in Parallel
-    const [
+    // Fetch All Data in a Single Optimized Request
+    const {
         summary,
         dailyTrend,
         weeklyData,
@@ -79,15 +74,7 @@ export default async function RevenueReportPage({
         areaRevenue,
         depositStatus,
         transactions
-    ] = await Promise.all([
-        getRevenueReportSummary(month, year),
-        getDailyRevenueTrend(month, year),
-        getWeeklyBreakdown(month, year),
-        getRevenueByPaymentMethod(month, year),
-        getRevenueByArea(month, year),
-        getDepositStatus(month, year),
-        getTransactionsList(month, year)
-    ]);
+    } = await getUnifiedRevenueReport(month, year);
 
     const months = [
         "Januari", "Februari", "Maret", "April", "Mei", "Juni",

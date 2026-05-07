@@ -160,7 +160,7 @@ export default function RiwayatPage() {
     const currentSummary = activeTab === 'water' ? waterSummary : installationSummary;
 
     return (
-        <div className="flex flex-col h-[calc(100vh-theme(spacing.8))] w-full gap-4">
+        <div className="flex flex-col h-auto md:h-[calc(100vh-theme(spacing.8))] w-full gap-4 pb-20 md:pb-0">
 
             {/* 1. HEADER GRID */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-stretch shrink-0">
@@ -317,8 +317,8 @@ export default function RiwayatPage() {
             </div>
 
             {/* 3. DATA TABLE */}
-            <div className="flex-1 bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden flex flex-col">
-                <div className="overflow-y-auto flex-1">
+            <div className="flex-1 bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden flex flex-col min-h-[400px] md:min-h-0">
+                <div className="overflow-x-auto overflow-y-auto flex-1">
                     {activeTab === 'water' ? (
                         <WaterBillTable
                             transactions={waterTransactions}
@@ -432,32 +432,32 @@ function WaterBillTable({
         <table className="w-full text-left border-collapse">
             <thead className="bg-slate-50 sticky top-0 z-10 border-b border-slate-200">
                 <tr>
-                    <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Waktu</th>
-                    <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Pelanggan</th>
-                    <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Detail</th>
-                    <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Metode</th>
-                    <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-wider text-right">Total</th>
-                    <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-wider w-24">Aksi</th>
+                    <th className="px-3 md:px-6 py-3 md:py-4 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Waktu</th>
+                    <th className="px-3 md:px-6 py-3 md:py-4 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Pelanggan</th>
+                    <th className="px-3 md:px-6 py-3 md:py-4 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Detail</th>
+                    <th className="px-3 md:px-6 py-3 md:py-4 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Metode</th>
+                    <th className="px-3 md:px-6 py-3 md:py-4 text-[10px] font-bold text-slate-400 uppercase tracking-wider text-right">Total</th>
+                    <th className="px-3 md:px-6 py-3 md:py-4 text-[10px] font-bold text-slate-400 uppercase tracking-wider w-24">Aksi</th>
                 </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
                 {transactions.map((tx) => (
                     <Fragment key={tx.id}>
                         <tr className="hover:bg-indigo-50/30 transition-colors group">
-                            <td className="px-6 py-4 align-top">
+                            <td className="px-3 md:px-6 py-3 md:py-4 align-top">
                                 <div className="flex flex-col">
                                     <span className="text-sm font-bold text-slate-700">{formatDate(tx.created_at)}</span>
                                     <span className="text-xs text-slate-400 font-mono mt-0.5">{formatTime(tx.created_at)}</span>
                                     <span className="text-[10px] text-slate-300 font-mono mt-1">#{tx.id}</span>
                                 </div>
                             </td>
-                            <td className="px-6 py-4 align-top">
+                            <td className="px-3 md:px-6 py-3 md:py-4 align-top">
                                 <div className="flex flex-col max-w-[200px]">
                                     <span className="text-sm font-semibold text-slate-700 truncate">{tx.customer_name}</span>
                                     <span className="text-xs text-slate-500 truncate">{tx.customer_address}</span>
                                 </div>
                             </td>
-                            <td className="px-6 py-4 align-top">
+                            <td className="px-3 md:px-6 py-3 md:py-4 align-top">
                                 <div className="text-xs text-slate-600">
                                     {tx.allocation_details.length > 0 ? (
                                         <span className="font-medium">{tx.allocation_details.length} bulan dibayar</span>
@@ -491,12 +491,12 @@ function WaterBillTable({
                                     {tx.method === 'cash' ? 'Tunai' : 'Transfer'}
                                 </span>
                             </td>
-                            <td className="px-6 py-4 text-right align-top">
+                            <td className="px-3 md:px-6 py-3 md:py-4 text-right align-top">
                                 <span className="text-lg font-black text-emerald-600 tracking-tight">
                                     {formatRupiah(tx.total_amount)}
                                 </span>
                             </td>
-                            <td className="px-6 py-4 align-top">
+                            <td className="px-3 md:px-6 py-3 md:py-4 align-top">
                                 <div className="flex items-center gap-2">
                                     {tx.allocation_details.length > 0 && (
                                         <button
@@ -607,13 +607,13 @@ function InstallationTable({
         <table className="w-full text-left border-collapse">
             <thead className="bg-slate-50 sticky top-0 z-10 border-b border-slate-200">
                 <tr>
-                    <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Waktu</th>
-                    <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Pelanggan</th>
-                    <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Cicilan</th>
-                    <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Progress</th>
-                    <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Status</th>
-                    <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-wider text-right">Sisa</th>
-                    <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-wider w-24">Aksi</th>
+                    <th className="px-3 md:px-6 py-3 md:py-4 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Waktu</th>
+                    <th className="px-3 md:px-6 py-3 md:py-4 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Pelanggan</th>
+                    <th className="px-3 md:px-6 py-3 md:py-4 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Cicilan</th>
+                    <th className="px-3 md:px-6 py-3 md:py-4 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Progress</th>
+                    <th className="px-3 md:px-6 py-3 md:py-4 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Status</th>
+                    <th className="px-3 md:px-6 py-3 md:py-4 text-[10px] font-bold text-slate-400 uppercase tracking-wider text-right">Sisa</th>
+                    <th className="px-3 md:px-6 py-3 md:py-4 text-[10px] font-bold text-slate-400 uppercase tracking-wider w-24">Aksi</th>
                 </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
@@ -622,20 +622,20 @@ function InstallationTable({
 
                     return (
                         <tr key={payment.id} className="hover:bg-indigo-50/30 transition-colors group">
-                            <td className="px-6 py-4 align-top">
+                            <td className="px-3 md:px-6 py-3 md:py-4 align-top">
                                 <div className="flex flex-col">
                                     <span className="text-sm font-bold text-slate-700">{formatDate(payment.payment_date)}</span>
                                     <span className="text-xs text-slate-400 font-mono mt-0.5">{formatTime(payment.payment_date)}</span>
                                     <span className="text-[10px] text-slate-300 font-mono mt-1">#{payment.id}</span>
                                 </div>
                             </td>
-                            <td className="px-6 py-4 align-top">
+                            <td className="px-3 md:px-6 py-3 md:py-4 align-top">
                                 <div className="flex flex-col max-w-[200px]">
                                     <span className="text-sm font-semibold text-slate-700 truncate">{payment.customer_name}</span>
                                     <span className="text-xs text-slate-500 truncate">{payment.customer_address}</span>
                                 </div>
                             </td>
-                            <td className="px-6 py-4 align-top">
+                            <td className="px-3 md:px-6 py-3 md:py-4 align-top">
                                 <div className="flex flex-col">
                                     <span className="text-sm font-black text-indigo-600">{formatRupiah(payment.amount)}</span>
                                     <span className={cn(
@@ -649,7 +649,7 @@ function InstallationTable({
                                     </span>
                                 </div>
                             </td>
-                            <td className="px-6 py-4 align-top">
+                            <td className="px-3 md:px-6 py-3 md:py-4 align-top">
                                 <div className="flex flex-col gap-2">
                                     <div className="w-32 h-2 bg-slate-100 rounded-full overflow-hidden">
                                         <div
@@ -662,7 +662,7 @@ function InstallationTable({
                                     </div>
                                 </div>
                             </td>
-                            <td className="px-6 py-4 align-top">
+                            <td className="px-3 md:px-6 py-3 md:py-4 align-top">
                                 <span className={cn(
                                     "inline-flex items-center px-2 py-1 rounded text-[10px] font-bold uppercase",
                                     payment.status === 'paid' && 'bg-green-100 text-green-700',
@@ -672,12 +672,12 @@ function InstallationTable({
                                     {payment.status === 'paid' ? 'Lunas' : payment.status === 'partial' ? 'Cicilan' : 'Pending'}
                                 </span>
                             </td>
-                            <td className="px-6 py-4 text-right align-top">
+                            <td className="px-3 md:px-6 py-3 md:py-4 text-right align-top">
                                 <span className="text-lg font-black text-slate-700 tracking-tight">
                                     {formatRupiah(payment.remaining_amount)}
                                 </span>
                             </td>
-                            <td className="px-6 py-4 align-top">
+                            <td className="px-3 md:px-6 py-3 md:py-4 align-top">
                                 <div className="flex items-center gap-2">
                                     <button
                                         onClick={() => window.open(`/print-sr/${payment.id}`, '_blank')}

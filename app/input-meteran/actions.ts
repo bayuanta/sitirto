@@ -250,7 +250,6 @@ export async function saveMeterRecord(formData: FormData) {
     }
 }
 
-// Fetch Areas for Filter
 export async function getAreas() {
     const supabase = await createClient();
     const { data, error } = await supabase
@@ -263,6 +262,25 @@ export async function getAreas() {
         return [];
     }
     return data || [];
+}
+
+export type UnifiedBulkInputData = {
+    customers: any[];
+    areas: any[];
+};
+
+export async function getUnifiedBulkInputData(
+    month: number,
+    year: number,
+    searchTerm: string = "",
+    groupFilter?: string | null,
+    areaFilter?: string | null
+): Promise<UnifiedBulkInputData> {
+    const [customers, areas] = await Promise.all([
+        getBulkInputMeterData(month, year, searchTerm, groupFilter, areaFilter),
+        getAreas()
+    ]);
+    return { customers, areas };
 }
 
 // Optimized Bulk Fetch with Group Support

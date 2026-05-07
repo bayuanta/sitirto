@@ -11,8 +11,8 @@ import Link from 'next/link';
 import {
     getUndepositedSummary,
     getUndepositedDetails,
+    getUnifiedSetoranData,
     createDeposit,
-    getDepositHistory,
     deleteDeposit,
     UndepositedSummary,
     UndepositedDetail,
@@ -72,17 +72,13 @@ export default function SetoranPage() {
     const loadData = async () => {
         setLoading(true);
         try {
-            const [summaryData, historyData, detailsData] = await Promise.all([
-                getUndepositedSummary(),
-                getDepositHistory(),
-                getUndepositedDetails()
-            ]);
-            setSummary(summaryData);
-            setHistory(historyData);
-            setDetails(detailsData);
+            const { summary, history, details } = await getUnifiedSetoranData();
+            setSummary(summary);
+            setHistory(history);
+            setDetails(details);
             
             // Auto-select based on current tab
-            const initialFiltered = detailsData.filter(d => activeTab === 'air' ? d.type === 'transaction' : d.type === 'installation');
+            const initialFiltered = details.filter(d => activeTab === 'air' ? d.type === 'transaction' : d.type === 'installation');
             setSelectedIds(new Set(initialFiltered.map(d => d.id)));
         } catch (error) {
             console.error('Error loading data:', error);
@@ -206,20 +202,20 @@ export default function SetoranPage() {
 
     // --- RENDER ---
     return (
-        <div className="flex flex-col h-[calc(100vh-10rem)] w-full gap-4 pb-0">
+        <div className="flex flex-col h-auto md:h-[calc(100vh-10rem)] w-full gap-4 pb-10 md:pb-0">
             {/* TABS */}
-            <div className="flex gap-2">
+            <div className="flex flex-col sm:flex-row gap-2">
                 <Button 
                     variant={activeTab === 'air' ? 'default' : 'outline'} 
                     onClick={() => handleTabChange('air')}
-                    className="rounded-full font-bold px-6 shadow-sm"
+                    className="rounded-full font-bold px-6 shadow-sm w-full sm:w-auto text-xs sm:text-sm h-10 sm:h-11"
                 >
                     <Wallet className="w-4 h-4 mr-2" /> Setoran Tagihan Air
                 </Button>
                 <Button 
                     variant={activeTab === 'sr' ? 'default' : 'outline'} 
                     onClick={() => handleTabChange('sr')}
-                    className="rounded-full font-bold px-6 shadow-sm"
+                    className="rounded-full font-bold px-6 shadow-sm w-full sm:w-auto text-xs sm:text-sm h-10 sm:h-11"
                 >
                     <Store className="w-4 h-4 mr-2" /> Setoran Pasang Baru (SR)
                 </Button>
@@ -227,7 +223,7 @@ export default function SetoranPage() {
 
             <div className="flex-1 grid grid-cols-12 gap-4 h-full min-h-0">
                 {/* LEFT COLUMN (60%) - RIWAYAT SETORAN */}
-                <div className="col-span-12 md:col-span-7 h-full flex flex-col min-h-0">
+                <div className="col-span-12 md:col-span-7 h-auto md:h-full flex flex-col min-h-0 order-2 md:order-1">
                     <div className="bg-white rounded-2xl shadow-sm border border-slate-100 flex flex-col h-full overflow-hidden">
                         {/* HEADER */}
                         <div className="p-4 border-b border-slate-100 flex items-center justify-between shrink-0">
@@ -247,7 +243,7 @@ export default function SetoranPage() {
                         </div>
 
                         {/* LIST */}
-                        <div className="flex-1 overflow-y-auto p-4 space-y-3">
+                        <div className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-3 max-h-[400px] md:max-h-none">
                             {loading ? (
                                 <div className="flex flex-col items-center justify-center h-64 gap-3 text-slate-400">
                                     <Loader2 className="w-8 h-8 animate-spin text-indigo-500" />
@@ -330,7 +326,7 @@ export default function SetoranPage() {
                 </div>
 
                 {/* RIGHT COLUMN (40%) - DASHBOARD/CASH ON HAND */}
-                <div className="col-span-12 md:col-span-5 h-full flex flex-col min-h-0">
+                <div className="col-span-12 md:col-span-5 h-auto md:h-full flex flex-col min-h-0 order-1 md:order-2">
                     {(activeTab === 'air' ? summary.transaction_amount : summary.installation_amount) === 0 ? (
                         // DASHBOARD STATS
                         <div className="bg-white rounded-2xl shadow-sm border border-slate-100 flex flex-col items-center justify-center p-6 h-full text-center space-y-4">
@@ -359,7 +355,7 @@ export default function SetoranPage() {
                         </div>
                     ) : (
                         // CASH ON HAND PANEL
-                        <div className="bg-white rounded-2xl shadow-xl border border-indigo-100 flex flex-col h-full overflow-hidden ring-4 ring-slate-50/50">
+                        <div className="bg-white rounded-2xl shadow-xl border border-indigo-100 flex flex-col h-auto md:h-full overflow-hidden ring-4 ring-slate-50/50 mb-4 md:mb-0">
                             {/* HEADER */}
                             <div className="bg-indigo-50/80 border-b border-indigo-100 px-4 py-3 flex items-center justify-between shrink-0 h-14">
                                 <div className="flex items-center gap-2 text-indigo-800">

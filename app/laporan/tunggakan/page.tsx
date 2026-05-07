@@ -1,11 +1,6 @@
 import { Suspense } from "react";
 import {
-    getArrearsSummary,
-    getArrearsByArea,
-    getArrearsByAge,
-    getArrearsDetailList,
-    getAreasList,
-    getTopDebtors
+    getUnifiedArrearsData
 } from "./actions";
 import {
     KpiCard,
@@ -59,22 +54,15 @@ export default async function ArrearsReportPage({
 
     const hasDateFilter = dateFilter.startMonth && dateFilter.startYear && dateFilter.endMonth && dateFilter.endYear;
 
-    // Fetch All Data with date filter
-    const [
+    // Fetch All Data with single unified call
+    const {
         summary,
         areaData,
         agingData,
         detailList,
         areas,
         topDebtors
-    ] = await Promise.all([
-        getArrearsSummary(dateFilter),
-        getArrearsByArea(dateFilter),
-        getArrearsByAge(dateFilter),
-        getArrearsDetailList(dateFilter),
-        getAreasList(),
-        getTopDebtors(5, dateFilter)
-    ]);
+    } = await getUnifiedArrearsData(dateFilter);
 
     // Format period label
     const periodLabel = hasDateFilter

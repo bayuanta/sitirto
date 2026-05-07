@@ -81,6 +81,7 @@ import {
     saveMeterRecord,
     getCustomerRateInfo,
     getBulkInputMeterData,
+    getUnifiedBulkInputData,
     updateRouteOrder,
     assignCustomerGroup,
     getAreas,
@@ -166,17 +167,20 @@ export default function InputMeteranPage() {
     const loadData = async () => {
         setLoading(true);
         try {
-            // Fetch Areas if empty
-            if (areas.length === 0) {
-                const areaList = await getAreas();
-                setAreas(areaList);
-            }
-
-            // Pass group filter to backend
+            // Pass filters to backend
             const groupParam = selectedGroup === 'ALL' ? null : selectedGroup;
             const areaParam = selectedArea === 'ALL' ? null : selectedArea;
 
-            const enriched = await getBulkInputMeterData(selectedMonth, selectedYear, searchTerm, groupParam, areaParam);
+            let enriched;
+            if (areas.length === 0) {
+                // First load: Get customers + areas unified
+                const { customers: cData, areas: aData } = await getUnifiedBulkInputData(selectedMonth, selectedYear, searchTerm, groupParam, areaParam);
+                enriched = cData;
+                setAreas(aData);
+            } else {
+                // Subsequent loads: Just customers
+                enriched = await getBulkInputMeterData(selectedMonth, selectedYear, searchTerm, groupParam, areaParam);
+            }
 
             // Pre-fill inputs for saved records
             const newInputs: Record<number, string> = {};
@@ -432,6 +436,33 @@ export default function InputMeteranPage() {
         }
     };
 
+    const handleShareWhatsApp = (c: CustomerWithRate) => {
+        const currentVal = inputs[c.id];
+        if (!currentVal && !c.is_saved) return;
+        
+        const effectiveMeterLast = meterReplacements[c.id] ? parseInt(manualMeterLast[c.id] || "0") : c.meter_lalu;
+        const currentNum = c.is_saved && c.current_value_if_saved ? c.current_value_if_saved : parseInt(currentVal);
+        const usage = currentNum - effectiveMeterLast;
+        const total = c.is_saved && c.saved_bill_amount ? c.saved_bill_amount : (usage * getEffectiveRate(c)) + getEffectiveMaintenance(c);
+        
+        const monthName = MONTHS[selectedMonth - 1];
+        const message = `*TAGIHAN AIR PAMSIMAS TIRTOWENING*%0A` +
+                        `--------------------------------------%0A` +
+                        `Pelanggan: *${c.nama}*%0A` +
+                        `No. SR: *${c.no_pelanggan}*%0A` +
+                        `Periode: *${monthName} ${selectedYear}*%0A` +
+                        `--------------------------------------%0A` +
+                        `Meter Lalu: ${effectiveMeterLast} m³%0A` +
+                        `Meter Sekarang: ${currentNum} m³%0A` +
+                        `Pemakaian: *${usage} m³*%0A` +
+                        `--------------------------------------%0A` +
+                        `*TOTAL TAGIHAN: ${formatRupiah(total)}*%0A` +
+                        `--------------------------------------%0A` +
+                        `Mohon segera melakukan pembayaran. Terima kasih.`;
+        
+        window.open(`https://wa.me/?text=${message}`, '_blank');
+    };
+
     const sensors = useSensors(
         useSensor(PointerSensor),
         useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
@@ -489,6 +520,15 @@ export default function InputMeteranPage() {
                             <span className="text-[10px] font-bold text-slate-400 whitespace-nowrap">{progressPercent}% Selesai</span>
                         </div>
                     </div>
+
+                    <Button 
+                        onClick={handleExportImage}
+                        disabled={isExporting || customers.filter(c => c.is_saved).length === 0}
+                        className="w-full md:w-auto h-11 md:h-10 px-6 rounded-xl md:rounded-full bg-indigo-50 text-indigo-700 hover:bg-indigo-100 border border-indigo-100 font-black text-xs gap-2 shadow-sm"
+                    >
+                        {isExporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Share2 className="h-4 w-4" />}
+                        BAGIKAN TAGIHAN KEL. {selectedGroup}
+                    </Button>
                 </div>
 
                 {/* --- RESPONSIVE TOOLBAR --- */}
@@ -753,7 +793,12 @@ export default function InputMeteranPage() {
 
                                     <div className="w-full md:w-16 flex justify-center mt-2 md:mt-0">
                                         {c.is_saved ? (
-                                            <div className="h-9 w-9 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center shadow-sm"><CheckCircle2 className="h-6 w-6" /></div>
+                                            <div className="flex items-center gap-2">
+                                                <div className="h-9 w-9 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center shadow-sm"><CheckCircle2 className="h-6 w-6" /></div>
+                                                <Button size="icon" variant="ghost" onClick={() => handleShareWhatsApp(c)} className="h-9 w-9 rounded-full bg-green-50 text-green-600 hover:bg-green-100 border border-green-100">
+                                                    <Share2 className="h-4 w-4" />
+                                                </Button>
+                                            </div>
                                         ) : (
                                             <Button size="sm" onClick={() => handleSaveRow(c.id)} disabled={!hasInput || isNegative || isSaving} className={cn("h-11 w-full md:h-9 md:w-9 rounded-xl md:rounded-full font-black", hasInput && !isNegative ? "bg-indigo-600 text-white shadow-lg shadow-indigo-200" : "bg-slate-100 text-slate-300")}>
                                                 {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-5 w-5 md:h-4 md:w-4" />}

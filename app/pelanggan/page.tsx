@@ -81,6 +81,7 @@ import {
 } from "lucide-react";
 import {
     getCustomers,
+    getUnifiedCustomerData,
     getWilayahList,
     createCustomer,
     getCustomerInstallation,
@@ -135,18 +136,24 @@ function PelangganPageContent() {
     const searchParams = useSearchParams();
     const search = searchParams.get("q") || "";
 
+    const isInitialMount = useRef(true);
+
     // Load Data
     const loadData = async () => {
         setLoading(true);
         try {
-            const [customerData, wilayahData, ratesData] = await Promise.all([
-                getCustomers(search, selectedAreaId, selectedStatus, selectedInstallStatus),
-                getWilayahList(),
-                getRatesList()
-            ]);
-            setCustomers(customerData);
-            setWilayahList(wilayahData);
-            setRatesList(ratesData);
+            if (isInitialMount.current) {
+                // First load: Get everything
+                const { customers: cData, wilayah: wData, rates: rData } = await getUnifiedCustomerData(search, selectedAreaId, selectedStatus, selectedInstallStatus);
+                setCustomers(cData);
+                setWilayahList(wData);
+                setRatesList(rData);
+                isInitialMount.current = false;
+            } else {
+                // Subsequent loads: Only refresh customer list
+                const customerData = await getCustomers(search, selectedAreaId, selectedStatus, selectedInstallStatus);
+                setCustomers(customerData);
+            }
         } catch (error) {
             toast.error("Gagal memuat data pelanggan");
         } finally {

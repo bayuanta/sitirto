@@ -417,3 +417,27 @@ export async function deleteDeposit(depositId: number): Promise<{ success: boole
         };
     }
 }
+
+// === UNIFIED DATA FUNCTION (OPTIMIZED) ===
+export async function getUnifiedSetoranData() {
+    try {
+        const [summaryResult, historyResult, detailsResult] = await Promise.all([
+            getUndepositedSummary(),
+            getDepositHistory(),
+            getUndepositedDetails()
+        ]);
+
+        return {
+            summary: summaryResult,
+            history: historyResult,
+            details: detailsResult
+        };
+    } catch (error) {
+        console.error("Error in getUnifiedSetoranData:", error);
+        return {
+            summary: { total_amount: 0, transaction_amount: 0, installation_amount: 0, transaction_count: 0, installation_count: 0, total_count: 0 },
+            history: [],
+            details: []
+        };
+    }
+}

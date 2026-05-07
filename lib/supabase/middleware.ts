@@ -31,9 +31,7 @@ export async function updateSession(request: NextRequest) {
     // supabase.auth.getUser(). A simple mistake could make it very hard to debug
     // issues with users being randomly logged out.
 
-    const {
-        data: { user },
-    } = await supabase.auth.getUser()
+    const pathname = request.nextUrl.pathname
 
     // Define protected routes
     const protectedRoutes = [
@@ -48,12 +46,20 @@ export async function updateSession(request: NextRequest) {
         '/tarif',
     ]
 
-    const pathname = request.nextUrl.pathname
-
     // Check if the current path matches any protected route
     const isProtectedRoute = protectedRoutes.some(route =>
         pathname === route || pathname.startsWith(`${route}/`)
     )
+
+    // OPTIMIZATION: Only call getUser() if it's a protected route or the login page
+    // This significantly reduces Auth requests for public routes like the landing page
+    if (!isProtectedRoute && pathname !== '/login') {
+        return supabaseResponse
+    }
+
+    const {
+        data: { user },
+    } = await supabase.auth.getUser()
 
     if (isProtectedRoute && !user) {
         // Redirect to login page

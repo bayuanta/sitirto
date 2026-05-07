@@ -10,6 +10,134 @@ interface DateRangeFilter {
     endYear?: number;
 }
 
+export type ArrearsData = {
+    summary: {
+        totalArrears: number;
+        totalCustomers: number;
+        totalRecords: number;
+        byStatus: { unpaid: number; partial: number };
+    };
+    areaData: { name: string; amount: number; count: number; percentage: number }[];
+    agingData: { range: string; amount: number; color: string }[];
+    detailList: any[];
+    areas: { id: number; name: string }[];
+    topDebtors: { id: number; name: string; connectionNumber: string; area: string; totalArrears: number; recordsCount: number }[];
+};
+
+export async function getUnifiedArrearsData(dateFilter?: DateRangeFilter): Promise<ArrearsData> {
+    const supabase = await createClient();
+    const today = new Date();
+    const currentMonth = today.getMonth() + 1;
+    const currentYear = today.getFullYear();
+
+    const [recordsRes, areasRes] = await Promise.all([
+        supabase.from("meter_records")
+            .select(`
+                id, month, year, bill_amount, paid_amount, status, usage,
+                customer:customers!inner (
+                    id, name, status, connection_number, phone, area_id,
+                    area:areas (id, name)
+                )
+            `)
+            .neq("status", "paid")
+            .eq("customer.status", "active"),
+        supabase.from("areas").select("id, name").order("name")
+    ]);
+
+    const records = recordsRes.data || [];
+    const areas = areasRes.data || [];
+
+    // --- 1. INITIALIZE COLLECTIONS ---
+    let totalArrearsGlobal = 0;
+    const customerIdSet = new Set<number>();
+    let unpaidCountTotal = 0;
+    let partialCountTotal = 0;
+    const areaMap: Record<string, { amount: number; count: number }> = {};
+    const aging = { "1 Bulan": 0, "2-3 Bulan": 0, "4-6 Bulan": 0, "7-12 Bulan": 0, "> 12 Bulan": 0 };
+    const customerDetailMap: Record<string, any> = {};
+    const monthShort = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agt", "Sep", "Okt", "Nov", "Des"];
+
+    // --- 2. PROCESS RECORDS ---
+    records.forEach((r: any) => {
+        if (!isInDateRange(r.month, r.year, dateFilter)) return;
+
+        const bill = r.bill_amount || 0;
+        const paid = r.paid_amount || 0;
+        const outstanding = bill - paid;
+        const areaName = r.customer?.area?.name || "Lain-lain";
+
+        // Global Stats
+        totalArrearsGlobal += outstanding;
+        if (r.customer?.id) customerIdSet.add(r.customer.id);
+        if (r.status === 'unpaid') unpaidCountTotal++;
+        else if (r.status === 'partial') partialCountTotal++;
+
+        // Area Breakdown
+        if (!areaMap[areaName]) areaMap[areaName] = { amount: 0, count: 0 };
+        areaMap[areaName].amount += outstanding;
+        areaMap[areaName].count += 1;
+
+        // Aging
+        const monthsOld = (currentYear - r.year) * 12 + (currentMonth - r.month);
+        if (monthsOld <= 1) aging["1 Bulan"] += outstanding;
+        else if (monthsOld <= 3) aging["2-3 Bulan"] += outstanding;
+        else if (monthsOld <= 6) aging["4-6 Bulan"] += outstanding;
+        else if (monthsOld <= 12) aging["7-12 Bulan"] += outstanding;
+        else aging["> 12 Bulan"] += outstanding;
+
+        // Detail List & Top Debtors (Unified processing)
+        const cid = r.customer?.id?.toString() || 'unknown';
+        if (!customerDetailMap[cid]) {
+            customerDetailMap[cid] = {
+                customerId: r.customer?.id || 0,
+                customerName: r.customer?.name || "Unknown",
+                connectionNumber: r.customer?.connection_number || "-",
+                phone: r.customer?.phone || "-",
+                areaId: r.customer?.area?.id || 0,
+                areaName: areaName,
+                totalArrears: 0,
+                arrearRecords: [],
+                oldestMonth: `${monthShort[r.month - 1]} ${r.year}`,
+                monthsCount: 0
+            };
+        }
+        customerDetailMap[cid].totalArrears += outstanding;
+        customerDetailMap[cid].monthsCount += 1;
+        customerDetailMap[cid].arrearRecords.push({
+            recordId: r.id, month: r.month, year: r.year,
+            billAmount: bill, paidAmount: paid, outstanding,
+            status: r.status, usage: r.usage
+        });
+    });
+
+    // --- 3. FINAL FORMATTING ---
+    const sortedDetails = Object.values(customerDetailMap).sort((a: any, b: any) => b.totalArrears - a.totalArrears);
+
+    return {
+        summary: {
+            totalArrears: totalArrearsGlobal,
+            totalCustomers: customerIdSet.size,
+            totalRecords: unpaidCountTotal + partialCountTotal,
+            byStatus: { unpaid: unpaidCountTotal, partial: partialCountTotal }
+        },
+        areaData: Object.entries(areaMap).map(([name, data]) => ({
+            name, amount: data.amount, count: data.count,
+            percentage: totalArrearsGlobal > 0 ? parseFloat(((data.amount / totalArrearsGlobal) * 100).toFixed(1)) : 0
+        })).sort((a, b) => b.amount - a.amount),
+        agingData: Object.entries(aging).map(([range, amount]) => ({
+            range, amount,
+            color: range === "1 Bulan" ? "#10b981" : range === "2-3 Bulan" ? "#f59e0b" : range === "4-6 Bulan" ? "#f97316" : range === "7-12 Bulan" ? "#ef4444" : "#991b1b"
+        })),
+        detailList: sortedDetails,
+        areas,
+        topDebtors: sortedDetails.slice(0, 10).map((d: any) => ({
+            id: d.customerId, name: d.customerName, connectionNumber: d.connectionNumber,
+            area: d.areaName, totalArrears: d.totalArrears, recordsCount: d.monthsCount
+        }))
+    };
+}
+
+
 // Helper to build date range condition
 function isInDateRange(month: number, year: number, filter?: DateRangeFilter): boolean {
     if (!filter?.startMonth || !filter?.startYear || !filter?.endMonth || !filter?.endYear) {

@@ -2,7 +2,233 @@
 
 import { supabase } from "@/lib/supabase";
 
-// --- DASHBOARD ACTIONS (Refactored for New Schema) ---
+// areas (id, name)
+export type DashboardData = {
+    stats: {
+        activeCustomers: number;
+        totalArrears: number;
+        totalUsage: number;
+        recordedCount: number;
+        targetPercentage: number;
+        targetPeriodName: string;
+    };
+    revenue: {
+        daily: number;
+        monthly: number;
+        yearly: number;
+    };
+    trend: { name: string; value: number }[];
+    topDebtors: { id: number; name: string; area: string; amount: number }[];
+    paymentMethods: { name: string; value: number; fill: string }[];
+    activity: { user: string; action: string; time: string; avatar: string; color: string }[];
+    paymentStatus: {
+        paid: number;
+        unpaid: number;
+        total: number;
+        percentage: number;
+    };
+    chartData: {
+        monthly: { name: string; total_bill: number; paid: number; unpaid: number }[];
+        summary: { totalBill: number; totalPaid: number; totalUnpaid: number };
+    };
+};
+
+export async function getUnifiedDashboardData(year: number = new Date().getFullYear()): Promise<DashboardData> {
+    try {
+        const date = new Date();
+        const currentMonth = date.getMonth() + 1;
+        const currentYear = date.getFullYear();
+        const todayStr = date.toISOString().split('T')[0];
+        const thisMonthStr = `${currentYear}-${String(currentMonth).padStart(2, '0')}`;
+        const startOfYear = `${year}-01-01T00:00:00Z`;
+
+        // 1. Calculate Target Month (Previous Month)
+        let targetMonth = currentMonth - 1;
+        let targetYear = currentYear;
+        if (targetMonth === 0) {
+            targetMonth = 12;
+            targetYear = currentYear - 1;
+        }
+        const monthsNames = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
+        const monthsShort = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agt", "Sep", "Okt", "Nov", "Des"];
+        const targetPeriodName = `${monthsNames[targetMonth - 1]} ${targetYear}`;
+
+        // RUN QUERIES IN PARALLEL
+        const [
+            { count: activeCustomersCount },
+            { data: transactions },
+            { data: allMeterRecords }
+        ] = await Promise.all([
+            // Q1: Active Customers Count
+            supabase.from("customers").select("*", { count: "exact", head: true }).eq("status", "active"),
+            
+            // Q2: Transactions (Current Year)
+            supabase.from("transactions")
+                .select("total_amount, method, created_at, customer:customers(name)")
+                .gte("created_at", `${currentYear}-01-01T00:00:00Z`)
+                .order("created_at", { ascending: false }),
+
+            // Q3: Meter Records (Current Year OR Unpaid)
+            // Using inner join on customers to filter only active ones
+            supabase.from("meter_records")
+                .select(`
+                    month, year, status, meter_current, meter_last, bill_amount, paid_amount,
+                    customer:customers!inner(id, name, status, area:areas(name))
+                `)
+                .or(`year.eq.${year},status.neq.paid`)
+                .eq("customers.status", "active")
+        ]);
+
+        const activeCustomers = activeCustomersCount || 0;
+        const txs = transactions || [];
+        const records = allMeterRecords || [];
+
+        // --- 1. KPI STATS & ARREARS ---
+        let totalArrears = 0;
+        let totalUsage = 0;
+        let recordedCount = 0;
+        const debtMap: Record<number, { id: number, name: string, area: string, amount: number }> = {};
+
+        records.forEach((r: any) => {
+            const bill = r.bill_amount || 0;
+            const paid = r.paid_amount || 0;
+            const debt = bill - paid;
+
+            // Arrears (Only if status not paid)
+            if (r.status !== 'paid') {
+                totalArrears += debt;
+                
+                // Top Debtors grouping
+                const cid = r.customer.id;
+                if (!debtMap[cid]) {
+                    debtMap[cid] = {
+                        id: cid,
+                        name: r.customer.name,
+                        area: r.customer.area?.name || "-",
+                        amount: 0
+                    };
+                }
+                debtMap[cid].amount += debt;
+            }
+
+            // Usage & Record Count for Target Month
+            if (r.month === targetMonth && r.year === targetYear) {
+                totalUsage += (r.meter_current - r.meter_last);
+                recordedCount++;
+            }
+        });
+
+        // --- 2. REVENUE & TRENDS (From Transactions) ---
+        let dailyRev = 0;
+        let monthlyRev = 0;
+        let yearlyRev = 0;
+        let cashCount = 0;
+        let transferCount = 0;
+        const trendGrouped: Record<string, number> = {};
+
+        txs.forEach((t: any) => {
+            const amt = t.total_amount || 0;
+            const tDateISO = t.created_at;
+            const tDate = tDateISO.split('T')[0];
+            const tMonth = tDate.substring(0, 7);
+            const dateObj = new Date(tDateISO);
+
+            // Period Revenue
+            yearlyRev += amt;
+            if (tMonth === thisMonthStr) monthlyRev += amt;
+            if (tDate === todayStr) dailyRev += amt;
+
+            // Payment Methods
+            if (t.method === 'transfer') transferCount++;
+            else cashCount++;
+
+            // Trend (Last 6 Months)
+            const trendKey = `${monthsShort[dateObj.getMonth()]} ${dateObj.getFullYear()}`;
+            trendGrouped[trendKey] = (trendGrouped[trendKey] || 0) + amt;
+        });
+
+        // Format Trend
+        const trend = Object.entries(trendGrouped)
+            .map(([name, value]) => ({ name, value }))
+            .slice(-6);
+
+        // --- 3. ACTIVITY (From Transactions) ---
+        const activity = txs.slice(0, 5).map((t: any) => ({
+            user: t.customer?.name || "Unknown",
+            action: `Bayar Tagihan ${t.method === 'cash' ? 'Tunai' : 'Transfer'}`,
+            time: new Date(t.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }),
+            avatar: (t.customer?.name || "U").substring(0, 2).toUpperCase(),
+            color: t.method === 'cash' ? "bg-emerald-500" : "bg-blue-500"
+        }));
+
+        // --- 4. PAYMENT STATUS & CHART (From Meter Records of selected Year) ---
+        let paidCount = 0;
+        let unpaidCount = 0;
+        const monthlyChart = monthsShort.map(m => ({ name: m, total_bill: 0, paid: 0, unpaid: 0 }));
+        let totalBillYearly = 0;
+        let totalPaidYearly = 0;
+
+        records.forEach((r: any) => {
+            if (r.year === year) {
+                const bill = r.bill_amount || 0;
+                const paid = r.paid_amount || 0;
+                const mIndex = r.month - 1;
+
+                if (r.status === 'paid') paidCount++;
+                else unpaidCount++;
+
+                if (mIndex >= 0 && mIndex < 12) {
+                    monthlyChart[mIndex].total_bill += bill;
+                    monthlyChart[mIndex].paid += paid;
+                    monthlyChart[mIndex].unpaid += (bill - paid);
+                    totalBillYearly += bill;
+                    totalPaidYearly += paid;
+                }
+            }
+        });
+
+        const totalRec = paidCount + unpaidCount;
+
+        return {
+            stats: {
+                activeCustomers,
+                totalArrears,
+                totalUsage,
+                recordedCount,
+                targetPercentage: activeCustomers ? Math.round((recordedCount / activeCustomers) * 100) : 0,
+                targetPeriodName
+            },
+            revenue: { daily: dailyRev, monthly: monthlyRev, yearly: yearlyRev },
+            trend,
+            topDebtors: Object.values(debtMap).sort((a, b) => b.amount - a.amount).slice(0, 5),
+            paymentMethods: [
+                { name: "Tunai", value: cashCount, fill: "#6366f1" },
+                { name: "Transfer", value: transferCount, fill: "#10b981" }
+            ],
+            activity,
+            paymentStatus: {
+                paid: paidCount,
+                unpaid: unpaidCount,
+                total: totalRec,
+                percentage: totalRec > 0 ? Math.round((paidCount / totalRec) * 100) : 0
+            },
+            chartData: {
+                monthly: monthlyChart,
+                summary: {
+                    totalBill: totalBillYearly,
+                    totalPaid: totalPaidYearly,
+                    totalUnpaid: totalBillYearly - totalPaidYearly
+                }
+            }
+        };
+
+    } catch (error) {
+        console.error("Unified Dashboard Error:", error);
+        throw error;
+    }
+}
+
+
 // Schema context:
 // customers (id, name, status, credit_balance, area_id)
 // meter_records (id, customer_id, month, year, usage [gen], bill_amount [gen], paid_amount, status)

@@ -4,10 +4,10 @@ import { createClient } from "@/lib/supabase/server";
 
 // --- HELPERS ---
 const getMonthRange = (month: number, year: number) => {
-    const startDate = `${year}-${month.toString().padStart(2, '0')}-01`;
+    const startDate = `${year}-${month.toString().padStart(2, '0')}-01T00:00:00Z`;
     const nextMonth = month === 12 ? 1 : month + 1;
     const nextYear = month === 12 ? year + 1 : year;
-    const endDate = `${nextYear}-${nextMonth.toString().padStart(2, '0')}-01`;
+    const endDate = `${nextYear}-${nextMonth.toString().padStart(2, '0')}-01T00:00:00Z`;
     return { startDate, endDate };
 };
 
@@ -40,65 +40,74 @@ const getPreviousMonthParams = (month: number, year: number) => {
 
 // === MAIN DATA FUNCTIONS ===
 
-export async function getRevenueReportSummary(month: number, year: number) {
+// === UNIFIED DATA FUNCTION (OPTIMIZED) ===
+export async function getUnifiedRevenueReport(month: number, year: number) {
     const supabase = await createClient();
-
     const current = getMonthRange(month, year);
     const prevParams = getPreviousMonthParams(month, year);
     const prev = getMonthRange(prevParams.month, prevParams.year);
 
-    // Fetch Current Month
-    const { data: currData, error: currError } = await supabase
-        .from("transactions")
-        .select("total_amount, method")
-        .gte("created_at", current.startDate)
-        .lt("created_at", current.endDate);
+    // Fetch Current Month (Full Detail) & Previous Month (Summary Only) in Parallel
+    const [currResult, prevResult] = await Promise.all([
+        supabase
+            .from("transactions")
+            .select(`
+                id,
+                total_amount,
+                method,
+                created_at,
+                is_deposited,
+                customer:customers (
+                    name,
+                    connection_number,
+                    area:areas(name)
+                )
+            `)
+            .gte("created_at", current.startDate)
+            .lt("created_at", current.endDate)
+            .order("created_at", { ascending: true }),
+        
+        supabase
+            .from("transactions")
+            .select("total_amount")
+            .gte("created_at", prev.startDate)
+            .lt("created_at", prev.endDate)
+    ]);
 
-    // Fetch Previous Month
-    const { data: prevData } = await supabase
-        .from("transactions")
-        .select("total_amount")
-        .gte("created_at", prev.startDate)
-        .lt("created_at", prev.endDate);
+    const currData = currResult.data || [];
+    const prevData = prevResult.data || [];
 
-    if (currError || !currData) {
-        console.error("Error fetching revenue summary", currError);
-        return {
-            totalRevenue: 0,
-            totalCash: 0,
-            totalTransfer: 0,
-            transactionCount: 0,
-            averageTransaction: 0,
-            growth: 0
-        };
-    }
-
+    // --- 1. SUMMARY CALCULATION ---
     let totalRevenue = 0;
     let totalCash = 0;
     let totalTransfer = 0;
+    let pendingCash = 0;
+    let pendingCount = 0;
+    let depositedCash = 0;
+    let depositedCount = 0;
 
     currData.forEach(p => {
         const amt = p.total_amount || 0;
         totalRevenue += amt;
-        if (p.method === 'cash') totalCash += amt;
-        else totalTransfer += amt;
+        if (p.method === 'cash') {
+            totalCash += amt;
+            if (p.is_deposited) {
+                depositedCash += amt;
+                depositedCount++;
+            } else {
+                pendingCash += amt;
+                pendingCount++;
+            }
+        } else {
+            totalTransfer += amt;
+        }
     });
 
-    let prevRevenue = 0;
-    if (prevData) {
-        prevData.forEach(p => prevRevenue += (p.total_amount || 0));
-    }
-
-    let growth = 0;
-    if (prevRevenue > 0) {
-        growth = ((totalRevenue - prevRevenue) / prevRevenue) * 100;
-    } else if (totalRevenue > 0) {
-        growth = 100;
-    }
-
+    const prevRevenue = prevData.reduce((sum, p) => sum + (p.total_amount || 0), 0);
+    let growth = prevRevenue > 0 ? ((totalRevenue - prevRevenue) / prevRevenue) * 100 : (totalRevenue > 0 ? 100 : 0);
     const averageTransaction = currData.length > 0 ? totalRevenue / currData.length : 0;
 
-    return {
+    const summary = {
         totalRevenue,
         totalCash,
         totalTransfer,
@@ -106,62 +115,24 @@ export async function getRevenueReportSummary(month: number, year: number) {
         averageTransaction: Math.round(averageTransaction),
         growth: parseFloat(growth.toFixed(1))
     };
-}
 
-export async function getDailyRevenueTrend(month: number, year: number) {
-    const supabase = await createClient();
-    const { startDate, endDate } = getMonthRange(month, year);
-
-    const { data: payments, error } = await supabase
-        .from("transactions")
-        .select("total_amount, created_at")
-        .gte("created_at", startDate)
-        .lt("created_at", endDate)
-        .order("created_at", { ascending: true });
-
-    if (error || !payments) return [];
-
+    // --- 2. DAILY TREND ---
     const daysInMonth = new Date(year, month, 0).getDate();
-    const dailyData = Array.from({ length: daysInMonth }, (_, i) => {
-        const day = i + 1;
-        return { day, revenue: 0, count: 0 };
-    });
-
-    payments.forEach(p => {
-        const date = new Date(p.created_at);
-        const day = date.getDate();
+    const dailyDataMap = Array.from({ length: daysInMonth }, (_, i) => ({ day: i + 1, revenue: 0, count: 0 }));
+    
+    currData.forEach(p => {
+        const day = new Date(p.created_at).getDate();
         if (day >= 1 && day <= daysInMonth) {
-            dailyData[day - 1].revenue += p.total_amount;
-            dailyData[day - 1].count += 1;
+            dailyDataMap[day - 1].revenue += p.total_amount;
+            dailyDataMap[day - 1].count += 1;
         }
     });
+    
+    const activeDays = dailyDataMap.filter(d => d.revenue > 0).length;
+    const avgDailyRevenue = activeDays > 0 ? totalRevenue / activeDays : 0;
+    const dailyTrend = dailyDataMap.map(d => ({ ...d, average: Math.round(avgDailyRevenue) }));
 
-    // Calculate running average
-    let runningTotal = 0;
-    let runningCount = 0;
-    dailyData.forEach(d => {
-        if (d.revenue > 0) {
-            runningTotal += d.revenue;
-            runningCount += 1;
-        }
-    });
-    const avgRevenue = runningCount > 0 ? runningTotal / runningCount : 0;
-
-    return dailyData.map(d => ({ ...d, average: Math.round(avgRevenue) }));
-}
-
-export async function getWeeklyBreakdown(month: number, year: number) {
-    const supabase = await createClient();
-    const { startDate, endDate } = getMonthRange(month, year);
-
-    const { data: payments, error } = await supabase
-        .from("transactions")
-        .select("total_amount, created_at")
-        .gte("created_at", startDate)
-        .lt("created_at", endDate);
-
-    if (error || !payments) return [];
-
+    // --- 3. WEEKLY BREAKDOWN ---
     const weeks = [
         { week: 'Minggu 1', revenue: 0, days: '1-7' },
         { week: 'Minggu 2', revenue: 0, days: '8-14' },
@@ -169,7 +140,7 @@ export async function getWeeklyBreakdown(month: number, year: number) {
         { week: 'Minggu 4', revenue: 0, days: '22-31' }
     ];
 
-    payments.forEach(p => {
+    currData.forEach(p => {
         const day = new Date(p.created_at).getDate();
         if (day <= 7) weeks[0].revenue += p.total_amount;
         else if (day <= 14) weeks[1].revenue += p.total_amount;
@@ -177,42 +148,16 @@ export async function getWeeklyBreakdown(month: number, year: number) {
         else weeks[3].revenue += p.total_amount;
     });
 
-    return weeks;
-}
-
-export async function getRevenueByArea(month: number, year: number) {
-    const supabase = await createClient();
-    const { startDate, endDate } = getMonthRange(month, year);
-
-    const { data: payments, error } = await supabase
-        .from("transactions")
-        .select(`
-            total_amount,
-            customer:customers (
-                area:areas (
-                    name
-                )
-            )
-        `)
-        .gte("created_at", startDate)
-        .lt("created_at", endDate);
-
-    if (error || !payments) return [];
-
+    // --- 4. AREA REVENUE ---
     const areaMap: Record<string, { revenue: number; count: number }> = {};
-
-    payments.forEach((p: any) => {
-        const amt = p.total_amount || 0;
+    currData.forEach((p: any) => {
         const areaName = p.customer?.area?.name || "Lain-lain";
-
         if (!areaMap[areaName]) areaMap[areaName] = { revenue: 0, count: 0 };
-        areaMap[areaName].revenue += amt;
+        areaMap[areaName].revenue += p.total_amount;
         areaMap[areaName].count += 1;
     });
 
-    const totalRevenue = Object.values(areaMap).reduce((sum, a) => sum + a.revenue, 0);
-
-    return Object.entries(areaMap)
+    const areaRevenue = Object.entries(areaMap)
         .map(([name, data]) => ({
             name,
             revenue: data.revenue,
@@ -220,129 +165,17 @@ export async function getRevenueByArea(month: number, year: number) {
             percentage: totalRevenue > 0 ? parseFloat(((data.revenue / totalRevenue) * 100).toFixed(1)) : 0
         }))
         .sort((a, b) => b.revenue - a.revenue);
-}
 
-export async function getRevenueByPaymentMethod(month: number, year: number) {
-    const supabase = await createClient();
-    const { startDate, endDate } = getMonthRange(month, year);
-
-    const { data: payments, error } = await supabase
-        .from("transactions")
-        .select("total_amount, method")
-        .gte("created_at", startDate)
-        .lt("created_at", endDate);
-
-    if (error || !payments) return [];
-
-    let cash = 0;
-    let transfer = 0;
-    let cashCount = 0;
-    let transferCount = 0;
-
-    payments.forEach(p => {
-        if (p.method === 'cash') {
-            cash += p.total_amount;
-            cashCount += 1;
-        } else {
-            transfer += p.total_amount;
-            transferCount += 1;
-        }
-    });
-
-    const total = cash + transfer;
-
-    return [
-        {
-            name: 'Tunai',
-            value: cash,
-            count: cashCount,
-            percentage: total > 0 ? parseFloat(((cash / total) * 100).toFixed(1)) : 0,
-            color: '#10b981'
-        },
-        {
-            name: 'Transfer',
-            value: transfer,
-            count: transferCount,
-            percentage: total > 0 ? parseFloat(((transfer / total) * 100).toFixed(1)) : 0,
-            color: '#6366f1'
-        },
+    // --- 5. PAYMENT METHODS ---
+    const cashCount = currData.filter(p => p.method === 'cash').length;
+    const transferCount = currData.length - cashCount;
+    const paymentMethods = [
+        { name: 'Tunai', value: totalCash, count: cashCount, percentage: totalRevenue > 0 ? parseFloat(((totalCash / totalRevenue) * 100).toFixed(1)) : 0, color: '#10b981' },
+        { name: 'Transfer', value: totalTransfer, count: transferCount, percentage: totalRevenue > 0 ? parseFloat(((totalTransfer / totalRevenue) * 100).toFixed(1)) : 0, color: '#6366f1' },
     ];
-}
 
-export async function getDepositStatus(month: number, year: number) {
-    const supabase = await createClient();
-    const { startDate, endDate } = getMonthRange(month, year);
-
-    // Get all transactions for the month
-    const { data: allTx, error } = await supabase
-        .from("transactions")
-        .select("total_amount, method, is_deposited")
-        .gte("created_at", startDate)
-        .lt("created_at", endDate);
-
-    if (error || !allTx) {
-        return {
-            totalCash: 0,
-            depositedCash: 0,
-            pendingCash: 0,
-            depositedCount: 0,
-            pendingCount: 0
-        };
-    }
-
-    let totalCash = 0;
-    let depositedCash = 0;
-    let pendingCash = 0;
-    let depositedCount = 0;
-    let pendingCount = 0;
-
-    allTx.forEach(tx => {
-        if (tx.method === 'cash') {
-            totalCash += tx.total_amount;
-            if (tx.is_deposited) {
-                depositedCash += tx.total_amount;
-                depositedCount += 1;
-            } else {
-                pendingCash += tx.total_amount;
-                pendingCount += 1;
-            }
-        }
-    });
-
-    return {
-        totalCash,
-        depositedCash,
-        pendingCash,
-        depositedCount,
-        pendingCount
-    };
-}
-
-export async function getTransactionsList(month: number, year: number) {
-    const supabase = await createClient();
-    const { startDate, endDate } = getMonthRange(month, year);
-
-    const { data, error } = await supabase
-        .from("transactions")
-        .select(`
-            id,
-            total_amount,
-            method,
-            created_at,
-            is_deposited,
-            customer:customers (
-                name,
-                connection_number,
-                area:areas(name)
-            )
-        `)
-        .gte("created_at", startDate)
-        .lt("created_at", endDate)
-        .order("created_at", { ascending: false });
-
-    if (error || !data) return [];
-
-    return data.map((t: any) => ({
+    // --- 6. TRANSACTIONS LIST ---
+    const transactions = [...currData].reverse().map((t: any) => ({
         id: t.id,
         date: new Date(t.created_at).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }),
         time: new Date(t.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }),
@@ -354,42 +187,71 @@ export async function getTransactionsList(month: number, year: number) {
         method: t.method,
         isDeposited: t.is_deposited || false
     }));
+
+    return {
+        summary,
+        dailyTrend,
+        weeklyData: weeks,
+        paymentMethods,
+        areaRevenue,
+        depositStatus: {
+            totalCash,
+            depositedCash,
+            pendingCash,
+            depositedCount,
+            pendingCount
+        },
+        transactions
+    };
+}
+
+// Keep individual exports for compatibility, but mark for future removal or use unified internal
+export async function getRevenueReportSummary(month: number, year: number) {
+    const data = await getUnifiedRevenueReport(month, year);
+    return data.summary;
+}
+
+export async function getDailyRevenueTrend(month: number, year: number) {
+    const data = await getUnifiedRevenueReport(month, year);
+    return data.dailyTrend;
+}
+
+export async function getWeeklyBreakdown(month: number, year: number) {
+    const data = await getUnifiedRevenueReport(month, year);
+    return data.weeklyData;
+}
+
+export async function getRevenueByArea(month: number, year: number) {
+    const data = await getUnifiedRevenueReport(month, year);
+    return data.areaRevenue;
+}
+
+export async function getRevenueByPaymentMethod(month: number, year: number) {
+    const data = await getUnifiedRevenueReport(month, year);
+    return data.paymentMethods;
+}
+
+export async function getDepositStatus(month: number, year: number) {
+    const data = await getUnifiedRevenueReport(month, year);
+    return data.depositStatus;
+}
+
+export async function getTransactionsList(month: number, year: number) {
+    const data = await getUnifiedRevenueReport(month, year);
+    return data.transactions;
 }
 
 export async function getTopCustomers(month: number, year: number, limit: number = 5) {
     const supabase = await createClient();
     const { startDate, endDate } = getMonthRange(month, year);
-
-    const { data, error } = await supabase
-        .from("transactions")
-        .select(`
-            total_amount,
-            customer:customers (
-                id,
-                name,
-                connection_number
-            )
-        `)
-        .gte("created_at", startDate)
-        .lt("created_at", endDate);
-
-    if (error || !data) return [];
-
-    const customerMap: Record<string, { name: string; total: number; count: number }> = {};
-
+    const { data } = await supabase.from("transactions").select("total_amount, customer:customers(id, name)").gte("created_at", startDate).lt("created_at", endDate);
+    if (!data) return [];
+    const map: Record<string, any> = {};
     data.forEach((t: any) => {
-        const custId = t.customer?.id || 'unknown';
-        const custName = t.customer?.name || 'Pelanggan Umum';
-
-        if (!customerMap[custId]) {
-            customerMap[custId] = { name: custName, total: 0, count: 0 };
-        }
-        customerMap[custId].total += t.total_amount;
-        customerMap[custId].count += 1;
+        const id = t.customer?.id || 'unknown';
+        if (!map[id]) map[id] = { name: t.customer?.name || 'Umum', total: 0, count: 0 };
+        map[id].total += t.total_amount;
+        map[id].count++;
     });
-
-    return Object.entries(customerMap)
-        .map(([id, data]) => ({ id, ...data }))
-        .sort((a, b) => b.total - a.total)
-        .slice(0, limit);
+    return Object.entries(map).map(([id, d]) => ({ id, ...d })).sort((a, b) => b.total - a.total).slice(0, limit);
 }

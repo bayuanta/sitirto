@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { Printer, ArrowLeft, Droplets } from 'lucide-react';
+import { Printer, ArrowLeft, Droplets, MessageCircle, Loader2 } from 'lucide-react';
+import * as htmlToImage from 'html-to-image';
 import { format } from 'date-fns';
 import { id as localeId } from 'date-fns/locale';
 import { PrintData } from './actions';
@@ -10,7 +11,9 @@ import { cn } from '@/lib/utils';
 
 export default function PrintClient({ data, initialFormat }: { data: PrintData, initialFormat: string }) {
     const router = useRouter();
+    const printRef = useRef<HTMLDivElement>(null);
     const [formatOption, setFormatOption] = useState<'thermal' | 'hemat' | 'full'>(initialFormat as any || 'thermal');
+    const [isSharing, setIsSharing] = useState(false);
 
     const handlePrint = () => {
         window.print();
@@ -28,6 +31,69 @@ export default function PrintClient({ data, initialFormat }: { data: PrintData, 
         name: "PAMSIMAS TIRTOWENING",
         address: "Desa Kemasan, Kec. Sawit",
         contact: "085867714590"
+    };
+
+    const handleShareWA = async () => {
+        if (!printRef.current) return;
+        setIsSharing(true);
+
+        try {
+            // Generate image from the receipt element
+            const dataUrl = await htmlToImage.toPng(printRef.current, {
+                quality: 1,
+                backgroundColor: '#ffffff',
+                pixelRatio: 3, // Higher quality for text
+                style: {
+                    margin: '0',
+                    boxShadow: 'none',
+                    border: 'none',
+                    transform: 'none'
+                }
+            });
+
+            // Summary text for WA
+            const text = `Halo Bapak/Ibu *${data.customerName}*, ini adalah bukti pembayaran PAMSIMAS Tirtowening untuk transaksi *#${data.transactionId}*.
+
+*Total Bayar:* ${formatRupiah(data.totalPaid)}
+*Sisa Deposit:* ${formatRupiah(data.newCredit)}
+
+Terima kasih atas pembayaran Anda. 🙏`;
+
+            // Check if Web Share API is available (especially for Mobile)
+            if (navigator?.share && typeof navigator.canShare === 'function') {
+                const blob = await (await fetch(dataUrl)).blob();
+                const file = new File([blob], `Struk_Pamsimas_${data.transactionId}.jpg`, { type: 'image/jpeg' });
+                
+                try {
+                    await navigator.share({ 
+                        files: [file], 
+                        title: 'Bukti Pembayaran Pamsimas',
+                        text: text.replace(/ {2,}/g, '')
+                    });
+                    setIsSharing(false);
+                    return; // Success
+                } catch (e) {
+                    // User cancelled or failed, proceed to fallback
+                    console.log("Share cancelled or failed, using fallback");
+                }
+            }
+
+            // FALLBACK (for Desktop or if sharing fails): Download + Open WA link
+            const link = document.createElement('a');
+            link.download = `Struk_Pamsimas_${data.customerNumber}_${data.transactionId}.jpg`;
+            link.href = dataUrl;
+            link.click();
+
+            setTimeout(() => {
+                const encodedText = encodeURIComponent(text.replace(/ {2,}/g, ''));
+                window.open(`https://wa.me/?text=${encodedText}`, '_blank');
+                setIsSharing(false);
+            }, 500);
+
+        } catch (error) {
+            console.error("Error generating image:", error);
+            setIsSharing(false);
+        }
     };
 
     // --- RECEIPT COMPONENT ---
@@ -186,6 +252,15 @@ export default function PrintClient({ data, initialFormat }: { data: PrintData, 
                         </div>
 
                         <button
+                            onClick={handleShareWA}
+                            disabled={isSharing}
+                            className="bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2 rounded-lg text-sm font-bold flex items-center gap-2 shadow-md shrink-0 transition-colors disabled:opacity-50"
+                        >
+                            {isSharing ? <Loader2 className="w-4 h-4 animate-spin" /> : <MessageCircle className="w-4 h-4" />}
+                            Share WA
+                        </button>
+
+                        <button
                             onClick={handlePrint}
                             className="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2 rounded-lg text-sm font-bold flex items-center gap-2 shadow-md shrink-0 transition-colors"
                         >
@@ -200,7 +275,7 @@ export default function PrintClient({ data, initialFormat }: { data: PrintData, 
             <div className="print:m-0 print:bg-white print:w-full print:h-full">
                 {formatOption === 'hemat' ? (
                     // HEMAT KERTAS: TIKET HORIZONTAL KECIL (1/5 Kertas A4)
-                    <div className={getFormatWrapperClass()}>
+                    <div ref={printRef} className={cn(getFormatWrapperClass(), "print:border-none print:shadow-none")}>
                         {/* Kiri: Info Perusahaan */}
                         <div className="w-[30%] border-r-2 border-black border-dashed pr-4 flex flex-col justify-center text-center">
                             <div className="flex justify-center mb-1">
@@ -274,7 +349,7 @@ export default function PrintClient({ data, initialFormat }: { data: PrintData, 
                     </div>
                 ) : (
                     // THERMAL & FULL A4: STRUK VERTIKAL NORMAL
-                    <div className={getFormatWrapperClass()}>
+                    <div ref={printRef} className={cn(getFormatWrapperClass(), "print:border-none print:shadow-none")}>
                         <ReceiptContent />
                     </div>
                 )}

@@ -15,14 +15,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
-    getDashboardStats,
-    getRevenueTrend,
-    getTopDebtors,
-    getPeriodRevenueStats,
-    getPaymentMethods,
-    getRecentActivity,
-    getPaymentStatusStats,
-    getPaymentStatistics
+    getUnifiedDashboardData
 } from "../dashboard-actions"; // UPDATED IMPORT PATH
 
 import {
@@ -46,25 +39,17 @@ const formatCurrency = (amount: number) => {
 };
 
 export default async function DashboardPage() {
-    const [
-        stats,
-        finance,
-        revenueTrend,
-        topDebtors,
-        paymentMethods,
-        recentActivity,
-        paymentStats,
-        paymentStatistics
-    ] = await Promise.all([
-        getDashboardStats(),
-        getPeriodRevenueStats(),
-        getRevenueTrend(),
-        getTopDebtors(),
-        getPaymentMethods(),
-        getRecentActivity(),
-        getPaymentStatusStats(),
-        getPaymentStatistics(new Date().getFullYear())
-    ]);
+    const data = await getUnifiedDashboardData(new Date().getFullYear());
+    const { 
+        stats, 
+        revenue: finance, 
+        trend: revenueTrend, 
+        topDebtors, 
+        paymentMethods, 
+        activity: recentActivity, 
+        paymentStatus: paymentStats, 
+        chartData: paymentStatistics 
+    } = data;
 
     return (
         // GRID UTAMA 12 KOLOM - COMPACT (Gap Reduced 6->4)

@@ -33,6 +33,27 @@ export type InstallationFee = {
     status: string;
 };
 
+export type UnifiedCustomerData = {
+    customers: any[];
+    wilayah: Wilayah[];
+    rates: { id: number; name: string; code: string }[];
+};
+
+export async function getUnifiedCustomerData(
+    query: string = "",
+    areaId?: string | number,
+    status?: string,
+    installationStatus?: string
+): Promise<UnifiedCustomerData> {
+    const [customers, wilayah, rates] = await Promise.all([
+        getCustomers(query, areaId, status, installationStatus),
+        getWilayahList(),
+        getRatesList()
+    ]);
+
+    return { customers, wilayah, rates };
+}
+
 export async function getCustomers(
     query: string = "",
     areaId?: string | number,
