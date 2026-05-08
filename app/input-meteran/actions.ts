@@ -305,7 +305,7 @@ export async function getBulkInputMeterData(
         .eq("status", "active")
         .order("route_order", { ascending: true })  // Primary sort by custom order
         .order("name", { ascending: true })         // Fallback alphabetical
-        .limit(100);
+        .limit(1000);
 
     // Group Filtering Logic
     if (groupFilter && groupFilter !== 'ALL') {

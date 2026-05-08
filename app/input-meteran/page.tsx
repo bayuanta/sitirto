@@ -158,6 +158,7 @@ export default function InputMeteranPage() {
     // ROUTE EDITOR STATE
     const [showRouteEditor, setShowRouteEditor] = useState(false);
     const [routeOrder, setRouteOrder] = useState<CustomerWithRate[]>([]);
+    const [routeSearchTerm, setRouteSearchTerm] = useState("");
 
     // KEYBOARD NAVIGATION STATE
     const inputRefs = useRef<Record<number, HTMLInputElement>>({});
@@ -410,6 +411,7 @@ export default function InputMeteranPage() {
 
     const handleOpenRouteEditor = () => {
         setRouteOrder([...customers]);
+        setRouteSearchTerm("");
         setShowRouteEditor(true);
     };
 
@@ -434,6 +436,55 @@ export default function InputMeteranPage() {
         } else {
             toast.error(result.error || 'Gagal menyimpan urutan');
         }
+    };
+
+    const sortRouteBySR = () => {
+        const sorted = [...routeOrder].sort((a, b) => {
+            return a.no_pelanggan.localeCompare(b.no_pelanggan, undefined, { numeric: true, sensitivity: 'base' });
+        });
+        setRouteOrder(sorted);
+        toast.success("Diurutkan berdasarkan No. SR");
+    };
+
+    const sortRouteByName = () => {
+        const sorted = [...routeOrder].sort((a, b) => a.nama.localeCompare(b.nama));
+        setRouteOrder(sorted);
+        toast.success("Diurutkan berdasarkan Nama");
+    };
+
+    const sortRouteByArea = () => {
+        const sorted = [...routeOrder].sort((a, b) => {
+            const areaA = a.area_name || "";
+            const areaB = b.area_name || "";
+            // Sort by area first, then by connection number
+            if (areaA !== areaB) return areaA.localeCompare(areaB);
+            return a.no_pelanggan.localeCompare(b.no_pelanggan, undefined, { numeric: true });
+        });
+        setRouteOrder(sorted);
+        toast.success("Diurutkan berdasarkan Wilayah");
+    };
+
+    const handleOrderChange = (id: number, newIndex: number) => {
+        const oldIndex = routeOrder.findIndex(c => c.id === id);
+        if (oldIndex === -1) return;
+        
+        // Ensure newIndex is within bounds
+        const safeIndex = Math.max(0, Math.min(newIndex, routeOrder.length - 1));
+        
+        if (oldIndex === safeIndex) return;
+
+        setRouteOrder(prev => {
+            const newOrder = [...prev];
+            const [item] = newOrder.splice(oldIndex, 1);
+            newOrder.splice(safeIndex, 0, item);
+            return newOrder;
+        });
+
+        const customerName = routeOrder[oldIndex].nama;
+        toast.success(`Berhasil memindah ${customerName} ke urutan #${safeIndex + 1}`, {
+            id: `move-${id}`, // Prevent toast spam
+            duration: 2000
+        });
     };
 
     const handleShareWhatsApp = (c: CustomerWithRate) => {
@@ -835,6 +886,41 @@ export default function InputMeteranPage() {
                             <DialogDescription>
                                 Geser dan lepas (drag & drop) untuk mengatur urutan rute penagihan.
                             </DialogDescription>
+                            <div className="flex gap-2 mt-4 pb-2 border-b border-slate-100">
+                                <Button 
+                                    size="sm" 
+                                    variant="outline" 
+                                    onClick={sortRouteBySR}
+                                    className="text-[10px] font-bold h-8 rounded-lg bg-slate-50 gap-1"
+                                >
+                                    <RotateCcw className="h-3 w-3" /> Urut No. SR
+                                </Button>
+                                <Button 
+                                    size="sm" 
+                                    variant="outline" 
+                                    onClick={sortRouteByName}
+                                    className="text-[10px] font-bold h-8 rounded-lg bg-slate-50 gap-1"
+                                >
+                                    <RotateCcw className="h-3 w-3" /> Urut Nama
+                                </Button>
+                                <Button 
+                                    size="sm" 
+                                    variant="outline" 
+                                    onClick={sortRouteByArea}
+                                    className="text-[10px] font-bold h-8 rounded-lg bg-slate-50 gap-1"
+                                >
+                                    <RotateCcw className="h-3 w-3" /> Urut Wilayah
+                                </Button>
+                            </div>
+                            <div className="relative mt-2">
+                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3 w-3 text-slate-400" />
+                                <Input 
+                                    placeholder="Cari pelanggan di rute ini..." 
+                                    value={routeSearchTerm}
+                                    onChange={(e) => setRouteSearchTerm(e.target.value)}
+                                    className="pl-8 h-8 rounded-lg bg-slate-100/50 border-none text-[10px] font-medium"
+                                />
+                            </div>
                         </DialogHeader>
 
                         <div className="flex-1 overflow-y-auto p-6 pt-2">
@@ -848,9 +934,23 @@ export default function InputMeteranPage() {
                                     strategy={verticalListSortingStrategy}
                                 >
                                     <div className="space-y-2">
-                                        {routeOrder.map((customer) => (
-                                            <SortableCustomerItem key={customer.id} id={customer.id} customer={customer} />
-                                        ))}
+                                        {routeOrder.map((customer, index) => {
+                                            const matchesSearch = 
+                                                customer.nama.toLowerCase().includes(routeSearchTerm.toLowerCase()) ||
+                                                customer.no_pelanggan.includes(routeSearchTerm);
+                                            
+                                            if (routeSearchTerm && !matchesSearch) return null;
+
+                                            return (
+                                                <SortableCustomerItem 
+                                                    key={customer.id} 
+                                                    id={customer.id} 
+                                                    index={index}
+                                                    customer={customer} 
+                                                    onOrderChange={handleOrderChange}
+                                                />
+                                            );
+                                        })}
                                     </div>
                                 </SortableContext>
                             </DndContext>

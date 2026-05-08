@@ -121,6 +121,8 @@ function PelangganPageContent() {
     const [selectedAreaId, setSelectedAreaId] = useState<number | 'all'>('all');
     const [selectedStatus, setSelectedStatus] = useState<string>('all');
     const [selectedInstallStatus, setSelectedInstallStatus] = useState<string>('all');
+    const [selectedGroup, setSelectedGroup] = useState<string>('all');
+    const [sortBy, setSortBy] = useState<string>('no_pelanggan');
 
     // Drawer State
     const [selectedCustomer, setSelectedCustomer] = useState<CustomerData | null>(null);
@@ -144,14 +146,14 @@ function PelangganPageContent() {
         try {
             if (isInitialMount.current) {
                 // First load: Get everything
-                const { customers: cData, wilayah: wData, rates: rData } = await getUnifiedCustomerData(search, selectedAreaId, selectedStatus, selectedInstallStatus);
+                const { customers: cData, wilayah: wData, rates: rData } = await getUnifiedCustomerData(search, selectedAreaId, selectedStatus, selectedInstallStatus, sortBy, selectedGroup);
                 setCustomers(cData);
                 setWilayahList(wData);
                 setRatesList(rData);
                 isInitialMount.current = false;
             } else {
                 // Subsequent loads: Only refresh customer list
-                const customerData = await getCustomers(search, selectedAreaId, selectedStatus, selectedInstallStatus);
+                const customerData = await getCustomers(search, selectedAreaId, selectedStatus, selectedInstallStatus, sortBy, selectedGroup);
                 setCustomers(customerData);
             }
         } catch (error) {
@@ -163,7 +165,7 @@ function PelangganPageContent() {
 
     useEffect(() => {
         loadData();
-    }, [search, selectedAreaId, selectedStatus, selectedInstallStatus]);
+    }, [search, selectedAreaId, selectedStatus, selectedInstallStatus, selectedGroup, sortBy]);
 
     // Fetch Installation Fee when customer selected
     useEffect(() => {
@@ -499,111 +501,82 @@ function PelangganPageContent() {
             </div>
 
             {/* --- SEARCH BAR & FILTERS --- */}
-            {/* --- SEARCH BAR & FILTERS --- */}
             <div className="mb-6 sticky top-0 bg-white z-10 py-2">
-                <div className="flex flex-col xl:flex-row gap-3">
-                    {/* Search Bar - Main Priority */}
-                    <div className="relative flex-1">
+                <div className="flex flex-col lg:flex-row gap-3">
+                    {/* Search Bar */}
+                    <div className="relative lg:w-[300px]">
                         <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
                         <Input
-                            placeholder="Cari nama, ID, atau wilayah..."
-                            className="pl-10 h-10 rounded-full bg-slate-50 border-0 focus-visible:ring-1 focus-visible:ring-indigo-500 font-medium text-xs placeholder:text-slate-400 w-full"
+                            placeholder="Cari pelanggan..."
+                            className="pl-10 h-10 rounded-full bg-slate-50 border-0 focus-visible:ring-1 focus-visible:ring-indigo-500 font-medium text-xs w-full"
                             value={globalFilter ?? ""}
                             onChange={(e) => setGlobalFilter(e.target.value)}
                         />
                     </div>
 
-                    {/* Filters Group - Responsive Grid */}
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 xl:w-[600px]">
+                    {/* Filters Row */}
+                    <div className="flex flex-wrap items-center gap-2 flex-1">
                         {/* Area Filter */}
                         <Select
                             value={String(selectedAreaId)}
                             onValueChange={(value) => setSelectedAreaId(value === 'all' ? 'all' : parseInt(value))}
                         >
-                            <SelectTrigger className="h-10 rounded-full bg-slate-50 border-0 focus:ring-1 focus:ring-indigo-500 font-medium text-xs">
-                                <SelectValue placeholder="Semua Wilayah" />
+                            <SelectTrigger className="h-10 px-4 rounded-full bg-slate-50 border-0 font-medium text-[11px] w-auto min-w-[140px]">
+                                <SelectValue placeholder="Wilayah" />
                             </SelectTrigger>
                             <SelectContent>
-                                <SelectItem value="all" className="text-xs font-medium">
-                                    <div className="flex items-center gap-2">
-                                        <MapPin className="h-3.5 w-3.5 text-slate-400" />
-                                        Semua Wilayah
-                                    </div>
-                                </SelectItem>
+                                <SelectItem value="all" className="text-xs font-medium">Semua Wilayah</SelectItem>
                                 {wilayahList.map((area) => (
-                                    <SelectItem key={area.id} value={area.id.toString()} className="text-xs font-medium">
-                                        <div className="flex items-center gap-2">
-                                            <MapPin className="h-3.5 w-3.5 text-indigo-400" />
-                                            {area.nama_wilayah}
-                                        </div>
-                                    </SelectItem>
+                                    <SelectItem key={area.id} value={area.id.toString()} className="text-xs font-medium">{area.nama_wilayah}</SelectItem>
                                 ))}
                             </SelectContent>
                         </Select>
 
                         {/* Status Filter */}
-                        <Select
-                            value={selectedStatus}
-                            onValueChange={setSelectedStatus}
-                        >
-                            <SelectTrigger className="h-10 rounded-full bg-slate-50 border-0 focus:ring-1 focus:ring-indigo-500 font-medium text-xs">
-                                <SelectValue placeholder="Semua Status" />
+                        <Select value={selectedStatus} onValueChange={setSelectedStatus}>
+                            <SelectTrigger className="h-10 px-4 rounded-full bg-slate-50 border-0 font-medium text-[11px] w-auto min-w-[100px]">
+                                <SelectValue placeholder="Status" />
                             </SelectTrigger>
                             <SelectContent>
-                                <SelectItem value="all" className="text-xs font-medium">
-                                    <div className="flex items-center gap-2">
-                                        <CheckCircle2 className="h-3.5 w-3.5 text-slate-400" />
-                                        Semua Status
-                                    </div>
-                                </SelectItem>
-                                <SelectItem value="active" className="text-xs font-medium">
-                                    <div className="flex items-center gap-2">
-                                        <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
-                                        Aktif
-                                    </div>
-                                </SelectItem>
-                                <SelectItem value="inactive" className="text-xs font-medium">
-                                    <div className="flex items-center gap-2">
-                                        <X className="h-3.5 w-3.5 text-slate-400" />
-                                        Tidak Aktif
-                                    </div>
-                                </SelectItem>
+                                <SelectItem value="all" className="text-xs font-medium">Semua Status</SelectItem>
+                                <SelectItem value="active" className="text-xs font-medium">Aktif</SelectItem>
+                                <SelectItem value="inactive" className="text-xs font-medium">Non-Aktif</SelectItem>
                             </SelectContent>
                         </Select>
 
-                        {/* Installation Fee Filter */}
-                        <Select
-                            value={selectedInstallStatus}
-                            onValueChange={setSelectedInstallStatus}
-                        >
-                            <SelectTrigger className="h-10 rounded-full bg-slate-50 border-0 focus:ring-1 focus:ring-indigo-500 font-medium text-xs">
+                        {/* Installation Filter */}
+                        <Select value={selectedInstallStatus} onValueChange={setSelectedInstallStatus}>
+                            <SelectTrigger className="h-10 px-4 rounded-full bg-slate-50 border-0 font-medium text-[11px] w-auto min-w-[120px]">
                                 <SelectValue placeholder="Biaya Pasang" />
                             </SelectTrigger>
                             <SelectContent>
-                                <SelectItem value="all" className="text-xs font-medium">
-                                    <div className="flex items-center gap-2">
-                                        <CreditCard className="h-3.5 w-3.5 text-slate-400" />
-                                        Semua
-                                    </div>
-                                </SelectItem>
-                                <SelectItem value="paid" className="text-xs font-medium">
-                                    <div className="flex items-center gap-2">
-                                        <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
-                                        Lunas
-                                    </div>
-                                </SelectItem>
-                                <SelectItem value="unpaid" className="text-xs font-medium">
-                                    <div className="flex items-center gap-2">
-                                        <Clock className="h-3.5 w-3.5 text-amber-500" />
-                                        Belum Lunas
-                                    </div>
-                                </SelectItem>
-                                <SelectItem value="none" className="text-xs font-medium">
-                                    <div className="flex items-center gap-2">
-                                        <X className="h-3.5 w-3.5 text-slate-400" />
-                                        Tidak Ada
-                                    </div>
-                                </SelectItem>
+                                <SelectItem value="all" className="text-xs font-medium">Semua Biaya</SelectItem>
+                                <SelectItem value="paid" className="text-xs font-medium">Lunas</SelectItem>
+                                <SelectItem value="unpaid" className="text-xs font-medium">Belum Lunas</SelectItem>
+                                <SelectItem value="none" className="text-xs font-medium">Tanpa Biaya</SelectItem>
+                            </SelectContent>
+                        </Select>
+
+                        {/* Group Filter */}
+                        <Select value={selectedGroup} onValueChange={setSelectedGroup}>
+                            <SelectTrigger className="h-10 px-4 rounded-full bg-slate-50 border-0 font-medium text-[11px] w-auto min-w-[110px]">
+                                <SelectValue placeholder="Kelompok" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="all" className="text-xs font-medium">Semua Kelompok</SelectItem>
+                                <SelectItem value="A" className="text-xs font-medium">Kelompok A</SelectItem>
+                                <SelectItem value="B" className="text-xs font-medium">Kelompok B</SelectItem>
+                            </SelectContent>
+                        </Select>
+
+                        {/* Sort Order */}
+                        <Select value={sortBy} onValueChange={setSortBy}>
+                            <SelectTrigger className="h-10 px-4 rounded-full bg-indigo-50 border-0 font-bold text-[11px] text-indigo-700 w-auto min-w-[140px]">
+                                <SelectValue placeholder="Urutkan" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="name" className="text-xs font-medium">Urut Nama (A-Z)</SelectItem>
+                                <SelectItem value="no_pelanggan" className="text-xs font-medium">Urut No. Pelanggan</SelectItem>
                             </SelectContent>
                         </Select>
                     </div>

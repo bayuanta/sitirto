@@ -43,10 +43,12 @@ export async function getUnifiedCustomerData(
     query: string = "",
     areaId?: string | number,
     status?: string,
-    installationStatus?: string
+    installationStatus?: string,
+    sortBy: string = "no_pelanggan",
+    groupFilter?: string
 ): Promise<UnifiedCustomerData> {
     const [customers, wilayah, rates] = await Promise.all([
-        getCustomers(query, areaId, status, installationStatus),
+        getCustomers(query, areaId, status, installationStatus, sortBy, groupFilter),
         getWilayahList(),
         getRatesList()
     ]);
@@ -58,7 +60,9 @@ export async function getCustomers(
     query: string = "",
     areaId?: string | number,
     status?: string,
-    installationStatus?: string
+    installationStatus?: string,
+    sortBy: string = "no_pelanggan",
+    groupFilter?: string
 ) {
     let dbQuery = supabase
         .from("customers")
@@ -68,8 +72,12 @@ export async function getCustomers(
             rate:rates(id, name, code),
             installation:installation_fees(status)
         `)
-        .order("name", { ascending: true })
-        .limit(200);
+        .order(sortBy === "no_pelanggan" ? "connection_number" : "name", { ascending: true })
+        .limit(1000);
+
+    if (groupFilter && groupFilter !== "all") {
+        dbQuery = dbQuery.eq("meter_reading_group", groupFilter);
+    }
 
     if (areaId && areaId !== "all") {
         dbQuery = dbQuery.eq("area_id", areaId);
