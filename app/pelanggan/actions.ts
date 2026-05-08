@@ -262,10 +262,17 @@ export async function updateCustomer(customerId: number, formData: FormData) {
         const hp = formData.get("hp") as string;
         const meter_reading_group = formData.get("meter_reading_group") as string || "A";
 
+        // Fee Data
+        const biaya_pasang_str = formData.get("biaya_pasang") as string;
+        const dp_pasang_str = formData.get("dp_pasang") as string;
+        const biaya_pasang = biaya_pasang_str ? parseInt(biaya_pasang_str) : 0;
+        const dp_pasang = dp_pasang_str ? parseInt(dp_pasang_str) : 0;
+
         if (!no_pelanggan || !nama || !wilayah_id || !rate_id) {
             return { error: "Mohon lengkapi data wajib (No. Pelanggan, Nama, Wilayah, Golongan)" };
         }
 
+        // 1. Update Customer Basic Info
         const payload = {
             connection_number: no_pelanggan,
             name: nama,
@@ -284,6 +291,40 @@ export async function updateCustomer(customerId: number, formData: FormData) {
         if (updateError) {
             if (updateError.code === "23505") return { error: "No. Pelanggan (SR) sudah terdaftar." };
             throw updateError;
+        }
+
+        // 2. Update or Create Installation Fee
+        if (biaya_pasang > 0) {
+            const status = dp_pasang >= biaya_pasang ? 'paid' : (dp_pasang > 0 ? 'partial' : 'pending');
+            
+            // Check if exists
+            const { data: existingFee } = await supabase
+                .from("installation_fees")
+                .select("id")
+                .eq("customer_id", customerId)
+                .single();
+
+            if (existingFee) {
+                // Update
+                await supabase
+                    .from("installation_fees")
+                    .update({
+                        total_amount: biaya_pasang,
+                        paid_amount: dp_pasang,
+                        status: status
+                    })
+                    .eq("id", existingFee.id);
+            } else {
+                // Create
+                await supabase
+                    .from("installation_fees")
+                    .insert({
+                        customer_id: customerId,
+                        total_amount: biaya_pasang,
+                        paid_amount: dp_pasang,
+                        status: status
+                    });
+            }
         }
 
         revalidatePath("/pelanggan");
@@ -438,8 +479,6 @@ export async function insertLegacyRecord(payload: {
         }
 
         revalidatePath("/pelanggan");
-        revalidatePath("/laporan/tunggakan");
-        revalidatePath("/");
         return { success: true };
     } catch (err: any) {
         console.error("Insert legacy record error:", err);
@@ -498,8 +537,6 @@ export async function deleteMeterRecord(recordId: number) {
         }
 
         revalidatePath("/pelanggan");
-        revalidatePath("/laporan/tunggakan");
-        revalidatePath("/");
         return { success: true };
     } catch (err: any) {
         console.error("Delete meter record error:", err);
@@ -598,8 +635,6 @@ export async function updateMeterRecord(recordId: number, payload: {
         }
 
         revalidatePath("/pelanggan");
-        revalidatePath("/laporan/tunggakan");
-        revalidatePath("/");
         return { success: true };
     } catch (err: any) {
         console.error("Update meter record error:", err);
@@ -655,40 +690,63 @@ export type CustomerDetails = {
         notes: string;
         related_bills: string;
     }>;
+    installation: any;
 };
 
 export async function getCustomerDetails(customerId: number): Promise<CustomerDetails | null> {
     try {
-        // 1. Get Customer Basic Info
-        const { data: customer, error: custError } = await supabase
-            .from("customers")
-            .select(`
-                *,
-                area:areas(id, name, code),
-                rate:rates(id, name, code),
-                installation:installation_fees(status)
-            `)
-            .eq("id", customerId)
-            .single();
+        // 1. Parallel fetch using Promise.all for maximum speed
+        const [custRes, billsRes, txRes, installRes] = await Promise.all([
+            supabase
+                .from("customers")
+                .select(`
+                    *,
+                    area:areas(id, name, code),
+                    rate:rates(id, name, code)
+                `)
+                .eq("id", customerId)
+                .single(),
+            supabase
+                .from("meter_records")
+                .select("*")
+                .eq("customer_id", customerId)
+                .order("year", { ascending: false })
+                .order("month", { ascending: false }),
+            supabase
+                .from("transactions")
+                .select("*")
+                .eq("customer_id", customerId)
+                .order("payment_date", { ascending: false })
+                .limit(50),
+            supabase
+                .from("installation_fees")
+                .select(`
+                    *,
+                    payments:installation_payments(*)
+                `)
+                .eq("customer_id", customerId)
+                .single()
+        ]);
 
-        if (custError || !customer) {
-            console.error("Error fetching customer:", custError);
+        if (custRes.error || !custRes.data) {
+            console.error("Error fetching customer:", custRes.error);
             return null;
         }
 
-        // 2. Get Bills (with paid_amount for accurate remaining calculation)
-        const { data: billsData, error: billsError } = await supabase
-            .from("meter_records")
-            .select("*")
-            .eq("customer_id", customerId)
-            .order("year", { ascending: false })
-            .order("month", { ascending: false });
+        const customer = custRes.data;
+        const billsData = billsRes.data || [];
+        const transactionsData = txRes.data || [];
+        const installationData = installRes.data || null;
 
-        if (billsError) {
-            console.error("Error fetching bills:", billsError);
+        // Sort installation payments descending if exists
+        if (installationData && installationData.payments) {
+            installationData.payments.sort((a: any, b: any) => 
+                new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+            );
         }
 
-        const bills = (billsData || []).map((record: any) => {
+        // 2. Process Bills
+        const bills = billsData.map((record: any) => {
             const usage = record.meter_current - record.meter_last;
             const water_cost = usage * record.rate_snapshot;
             const remaining = record.bill_amount - (record.paid_amount || 0);
@@ -711,17 +769,15 @@ export async function getCustomerDetails(customerId: number): Promise<CustomerDe
         });
 
         // 3. Calculate Stats
-        // Total Arrears: SUM of remaining for unpaid/partial bills
         const total_arrears = bills
             .filter(b => b.status === 'unpaid' || b.status === 'partial')
             .reduce((sum, b) => sum + b.remaining, 0);
 
         const total_bills = bills.filter(b => b.status === 'unpaid' || b.status === 'partial').length;
 
-        // Average Usage: Last 3-6 months only
+        // Average Usage: Last 6 months
         const now = new Date();
         const sixMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 6, 1);
-
         const recentBills = bills.filter(b => {
             const billDate = new Date(b.year, b.month - 1, 1);
             return billDate >= sixMonthsAgo;
@@ -731,33 +787,13 @@ export async function getCustomerDetails(customerId: number): Promise<CustomerDe
             ? recentBills.reduce((sum, b) => sum + b.usage, 0) / recentBills.length
             : 0;
 
-        // 4. Get Transaction History
-        const { data: transactionsData, error: txError } = await supabase
-            .from("transactions")
-            .select("*")
-            .eq("customer_id", customerId)
-            .order("payment_date", { ascending: false })
-            .limit(50);
-
-        if (txError) {
-            console.error("Error fetching transactions:", txError);
-        }
-
-        const history = (transactionsData || []).map((tx: any) => {
-            // Determine transaction type based on notes and method
+        // 4. Process Transaction History
+        const history = transactionsData.map((tx: any) => {
             let type = "Pembayaran Tagihan";
+            if (tx.notes?.toLowerCase().includes("pasang")) type = "Biaya Pasang";
+            else if (tx.notes?.toLowerCase().includes("auto-debit") || tx.applied_credit > 0) type = "Auto-Debit Saldo";
+            else if (tx.new_credit > tx.applied_credit) type = "Deposit Saldo";
 
-            if (tx.notes?.toLowerCase().includes("pasang") || tx.notes?.toLowerCase().includes("installation")) {
-                type = "Biaya Pasang";
-            } else if (tx.notes?.toLowerCase().includes("auto-debit") || tx.notes?.toLowerCase().includes("deposit")) {
-                type = "Auto-Debit Saldo";
-            } else if (tx.applied_credit > 0) {
-                type = "Auto-Debit Saldo";
-            } else if (tx.new_credit > tx.applied_credit) {
-                type = "Deposit Saldo";
-            }
-
-            // Parse allocation details for related bills
             let related_bills = "";
             try {
                 const allocations = JSON.parse(tx.allocation_details || "[]");
@@ -767,9 +803,7 @@ export async function getCustomerDetails(customerId: number): Promise<CustomerDe
                         .map((a: any) => `${months[a.month - 1]} ${a.year}`)
                         .join(", ");
                 }
-            } catch (e) {
-                // Ignore parse errors
-            }
+            } catch (e) {}
 
             return {
                 id: tx.id,
@@ -782,10 +816,9 @@ export async function getCustomerDetails(customerId: number): Promise<CustomerDe
             };
         });
 
-        // Last payment date
         const last_payment_date = history.length > 0 ? history[0].date : null;
 
-        // 5. Return Complete Details
+        // 5. Return Unified Object
         return {
             customer: {
                 id: customer.id,
@@ -804,16 +837,17 @@ export async function getCustomerDetails(customerId: number): Promise<CustomerDe
                 } : null,
                 rate_id: customer.rate_id,
                 credit_balance: customer.credit_balance || 0,
-                installation_status: customer.installation?.[0]?.status || "none",
+                installation_status: installationData?.status || "none",
             },
             stats: {
                 total_arrears,
-                avg_usage: Math.round(avg_usage * 10) / 10, // Round to 1 decimal
+                avg_usage: Math.round(avg_usage * 10) / 10,
                 last_payment_date,
                 total_bills,
             },
             bills,
             history,
+            installation: installationData,
         };
     } catch (err: any) {
         console.error("Get customer details error:", err);

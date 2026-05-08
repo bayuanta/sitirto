@@ -167,15 +167,15 @@ function PelangganPageContent() {
         loadData();
     }, [search, selectedAreaId, selectedStatus, selectedInstallStatus, selectedGroup, sortBy]);
 
-    // Fetch Installation Fee when customer selected
+    // Fetch Installation Fee is now handled within getCustomerDetails inside the drawer
+    // to reduce redundant network requests. Parent still keeps the state for the payment dialog.
+    const onDetailsLoaded = (fee: InstallationFee | null) => {
+        setInstallationFee(fee);
+    };
+
+    // Clear detail states when drawer is closed
     useEffect(() => {
-        if (selectedCustomer?.installation_status !== 'none' && selectedCustomer?.id) {
-            setLoadingFee(true);
-            getCustomerInstallation(selectedCustomer.id).then(data => {
-                setInstallationFee(data);
-                setLoadingFee(false);
-            });
-        } else {
+        if (!selectedCustomer) {
             setInstallationFee(null);
         }
     }, [selectedCustomer]);
@@ -190,6 +190,7 @@ function PelangganPageContent() {
     const openCreateForm = () => {
         setIsEditMode(false);
         setEditingCustomerData(null);
+        setInstallationFee(null);
         setIsDialogOpen(true);
     };
 
@@ -388,14 +389,12 @@ function PelangganPageContent() {
                                             <div className="relative">
                                                 <Input 
                                                     id="no_pelanggan" 
-                                                    name={isEditMode ? undefined : "no_pelanggan"} 
+                                                    name="no_pelanggan" 
                                                     defaultValue={editingCustomerData?.no_pelanggan} 
                                                     placeholder="Contoh: SR-001" 
                                                     className="rounded-xl bg-slate-50 border-slate-200 h-11 focus:bg-white transition-all font-bold" 
                                                     required 
-                                                    disabled={isEditMode} 
                                                 />
-                                                {isEditMode && editingCustomerData && <input type="hidden" name="no_pelanggan" value={editingCustomerData.no_pelanggan} />}
                                             </div>
                                         </div>
                                         
@@ -413,9 +412,9 @@ function PelangganPageContent() {
                                         </div>
 
                                         <div className="space-y-1.5">
-                                            <Label htmlFor="wilayah" className="text-[11px] font-bold text-slate-500 ml-1">WILAYAH TINGGAL</Label>
+                                            <Label htmlFor="wilayah_id" className="text-[11px] font-bold text-slate-500 ml-1">WILAYAH TINGGAL</Label>
                                             <Select name="wilayah_id" defaultValue={editingCustomerData?.wilayah_id?.toString()} required>
-                                                <SelectTrigger className="rounded-xl bg-slate-50 border-slate-200 h-11 font-medium"><SelectValue placeholder="Pilih Wilayah" /></SelectTrigger>
+                                                <SelectTrigger id="wilayah_id" className="rounded-xl bg-slate-50 border-slate-200 h-11 font-medium"><SelectValue placeholder="Pilih Wilayah" /></SelectTrigger>
                                                 <SelectContent className="rounded-xl">
                                                     {wilayahList.map((w) => (<SelectItem key={w.id} value={w.id.toString()}>{w.nama_wilayah}</SelectItem>))}
                                                 </SelectContent>
@@ -423,15 +422,15 @@ function PelangganPageContent() {
                                         </div>
 
                                         <div className="space-y-1.5">
-                                            <Label htmlFor="rate" className="text-[11px] font-bold text-slate-500 ml-1">GOLONGAN TARIF</Label>
+                                            <Label htmlFor="rate_id" className="text-[11px] font-bold text-slate-500 ml-1">GOLONGAN TARIF</Label>
                                             <Select name="rate_id" defaultValue={(editingCustomerData as any)?.rate_id?.toString()} required>
-                                                <SelectTrigger className="rounded-xl bg-slate-50 border-slate-200 h-11 font-medium"><SelectValue placeholder="Pilih Golongan" /></SelectTrigger>
+                                                <SelectTrigger id="rate_id" className="rounded-xl bg-slate-50 border-slate-200 h-11 font-medium"><SelectValue placeholder="Pilih Golongan" /></SelectTrigger>
                                                 <SelectContent className="rounded-xl">
                                                     {ratesList.map((r) => (
                                                         <SelectItem key={r.id} value={r.id.toString()}>
                                                             <div className="flex flex-col">
-                                                                <span className="font-bold">{r.name}</span>
-                                                                <span className="text-[10px] text-slate-500">Kode: {r.code}</span>
+                                                                 <span className="font-bold">{r.name}</span>
+                                                                 <span className="text-[10px] text-slate-500">Kode: {r.code}</span>
                                                             </div>
                                                         </SelectItem>
                                                     ))}
@@ -442,7 +441,7 @@ function PelangganPageContent() {
                                         <div className="space-y-1.5">
                                             <Label htmlFor="meter_reading_group" className="text-[11px] font-bold text-slate-500 ml-1">KELOMPOK CATAT METER</Label>
                                             <Select name="meter_reading_group" defaultValue={editingCustomerData?.meter_reading_group || 'A'} required>
-                                                <SelectTrigger className="rounded-xl bg-slate-50 border-slate-200 h-11 font-medium"><SelectValue placeholder="Pilih Kelompok" /></SelectTrigger>
+                                                <SelectTrigger id="meter_reading_group" className="rounded-xl bg-slate-50 border-slate-200 h-11 font-medium"><SelectValue placeholder="Pilih Kelompok" /></SelectTrigger>
                                                 <SelectContent className="rounded-xl">
                                                     <SelectItem value="A">Kelompok A</SelectItem>
                                                     <SelectItem value="B">Kelompok B</SelectItem>
@@ -457,33 +456,45 @@ function PelangganPageContent() {
                                     </div>
                                 </div>
 
-                                {/* SEKSI 2: BIAYA PASANG (HANYA UNTUK PELANGGAN BARU) */}
-                                {!isEditMode && (
-                                    <div className="p-5 rounded-2xl bg-slate-50 border border-slate-100 space-y-4">
-                                        <div className="flex items-center gap-2 mb-4">
-                                            <div className="h-1 w-8 bg-amber-500 rounded-full"></div>
-                                            <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Biaya Pemasangan</h3>
-                                        </div>
-                                        
-                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                            <div className="space-y-1.5">
-                                                <Label htmlFor="biaya_pasang" className="text-[11px] font-bold text-slate-500 ml-1">TOTAL BIAYA (RP)</Label>
-                                                <div className="relative">
-                                                    <CreditCard className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-                                                    <Input id="biaya_pasang" name="biaya_pasang" type="number" placeholder="0" className="rounded-xl border-slate-200 h-11 pl-10 font-bold text-indigo-600 focus:bg-white transition-all" />
-                                                </div>
-                                            </div>
-                                            <div className="space-y-1.5">
-                                                <Label htmlFor="dp_pasang" className="text-[11px] font-bold text-slate-500 ml-1">UANG MUKA / DP (RP)</Label>
-                                                <Input id="dp_pasang" name="dp_pasang" type="number" placeholder="0" className="rounded-xl border-slate-200 h-11 font-bold text-emerald-600 focus:bg-white transition-all" />
-                                            </div>
-                                        </div>
-                                        <p className="text-[10px] text-slate-400 flex items-center gap-1.5 px-1">
-                                            <AlertCircle className="h-3 w-3" />
-                                            Biaya ini akan tercatat sebagai hutang pemasangan jika belum lunas.
-                                        </p>
+                                {/* SEKSI 2: BIAYA PASANG */}
+                                <div className="p-5 rounded-2xl bg-slate-50 border border-slate-100 space-y-4">
+                                    <div className="flex items-center gap-2 mb-4">
+                                        <div className="h-1 w-8 bg-amber-500 rounded-full"></div>
+                                        <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Biaya Pemasangan</h3>
                                     </div>
-                                )}
+                                    
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                        <div className="space-y-1.5">
+                                            <Label htmlFor="biaya_pasang" className="text-[11px] font-bold text-slate-500 ml-1">TOTAL BIAYA (RP)</Label>
+                                            <div className="relative">
+                                                <CreditCard className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                                                <Input 
+                                                    id="biaya_pasang" 
+                                                    name="biaya_pasang" 
+                                                    type="number" 
+                                                    defaultValue={installationFee?.total_amount}
+                                                    placeholder="0" 
+                                                    className="rounded-xl border-slate-200 h-11 pl-10 font-bold text-indigo-600 focus:bg-white transition-all" 
+                                                />
+                                            </div>
+                                        </div>
+                                        <div className="space-y-1.5">
+                                            <Label htmlFor="dp_pasang" className="text-[11px] font-bold text-slate-500 ml-1">UANG MUKA / DP (RP)</Label>
+                                            <Input 
+                                                id="dp_pasang" 
+                                                name="dp_pasang" 
+                                                type="number" 
+                                                defaultValue={installationFee?.paid_amount}
+                                                placeholder="0" 
+                                                className="rounded-xl border-slate-200 h-11 font-bold text-emerald-600 focus:bg-white transition-all" 
+                                            />
+                                        </div>
+                                    </div>
+                                    <p className="text-[10px] text-slate-400 flex items-center gap-1.5 px-1">
+                                        <AlertCircle className="h-3 w-3" />
+                                        Biaya ini akan tercatat sebagai hutang pemasangan jika belum lunas.
+                                    </p>
+                                </div>
                             </form>
                         </div>
 
@@ -507,6 +518,8 @@ function PelangganPageContent() {
                     <div className="relative lg:w-[300px]">
                         <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
                         <Input
+                            id="search-pelanggan"
+                            name="search-pelanggan"
                             placeholder="Cari pelanggan..."
                             className="pl-10 h-10 rounded-full bg-slate-50 border-0 focus-visible:ring-1 focus-visible:ring-indigo-500 font-medium text-xs w-full"
                             value={globalFilter ?? ""}
@@ -521,7 +534,7 @@ function PelangganPageContent() {
                             value={String(selectedAreaId)}
                             onValueChange={(value) => setSelectedAreaId(value === 'all' ? 'all' : parseInt(value))}
                         >
-                            <SelectTrigger className="h-10 px-4 rounded-full bg-slate-50 border-0 font-medium text-[11px] w-auto min-w-[140px]">
+                            <SelectTrigger id="filter-wilayah" name="filter-wilayah" className="h-10 px-4 rounded-full bg-slate-50 border-0 font-medium text-[11px] w-auto min-w-[140px]">
                                 <SelectValue placeholder="Wilayah" />
                             </SelectTrigger>
                             <SelectContent>
@@ -534,7 +547,7 @@ function PelangganPageContent() {
 
                         {/* Status Filter */}
                         <Select value={selectedStatus} onValueChange={setSelectedStatus}>
-                            <SelectTrigger className="h-10 px-4 rounded-full bg-slate-50 border-0 font-medium text-[11px] w-auto min-w-[100px]">
+                            <SelectTrigger id="filter-status" name="filter-status" className="h-10 px-4 rounded-full bg-slate-50 border-0 font-medium text-[11px] w-auto min-w-[100px]">
                                 <SelectValue placeholder="Status" />
                             </SelectTrigger>
                             <SelectContent>
@@ -546,7 +559,7 @@ function PelangganPageContent() {
 
                         {/* Installation Filter */}
                         <Select value={selectedInstallStatus} onValueChange={setSelectedInstallStatus}>
-                            <SelectTrigger className="h-10 px-4 rounded-full bg-slate-50 border-0 font-medium text-[11px] w-auto min-w-[120px]">
+                            <SelectTrigger id="filter-biaya" name="filter-biaya" className="h-10 px-4 rounded-full bg-slate-50 border-0 font-medium text-[11px] w-auto min-w-[120px]">
                                 <SelectValue placeholder="Biaya Pasang" />
                             </SelectTrigger>
                             <SelectContent>
@@ -559,7 +572,7 @@ function PelangganPageContent() {
 
                         {/* Group Filter */}
                         <Select value={selectedGroup} onValueChange={setSelectedGroup}>
-                            <SelectTrigger className="h-10 px-4 rounded-full bg-slate-50 border-0 font-medium text-[11px] w-auto min-w-[110px]">
+                            <SelectTrigger id="filter-kelompok" name="filter-kelompok" className="h-10 px-4 rounded-full bg-slate-50 border-0 font-medium text-[11px] w-auto min-w-[110px]">
                                 <SelectValue placeholder="Kelompok" />
                             </SelectTrigger>
                             <SelectContent>
@@ -571,7 +584,7 @@ function PelangganPageContent() {
 
                         {/* Sort Order */}
                         <Select value={sortBy} onValueChange={setSortBy}>
-                            <SelectTrigger className="h-10 px-4 rounded-full bg-indigo-50 border-0 font-bold text-[11px] text-indigo-700 w-auto min-w-[140px]">
+                            <SelectTrigger id="filter-urutkan" name="filter-urutkan" className="h-10 px-4 rounded-full bg-indigo-50 border-0 font-bold text-[11px] text-indigo-700 w-auto min-w-[140px]">
                                 <SelectValue placeholder="Urutkan" />
                             </SelectTrigger>
                             <SelectContent>
@@ -700,11 +713,11 @@ function PelangganPageContent() {
 
                         <CustomerDrawerContent
                             customer={selectedCustomer}
-                            installationFee={installationFee}
                             onPayInstallment={() => setIsPayInstallmentOpen(true)}
                             formatCurrency={formatCurrency}
                             onEditCustomer={() => openEditForm(selectedCustomer)}
                             onClose={() => setSelectedCustomer(null)}
+                            onDetailsLoaded={onDetailsLoaded}
                         />
 
                     </div>
@@ -765,8 +778,10 @@ export default function PelangganPage() {
 }
 
 // --- DRAWER CONTENT COMPONENT ---
-function CustomerDrawerContent({ customer, installationFee, onPayInstallment, formatCurrency, onEditCustomer, onClose }: { customer: any, installationFee: any, onPayInstallment: () => void, formatCurrency: (v: number) => string, onEditCustomer: () => void, onClose?: () => void }) {
+function CustomerDrawerContent({ customer, onPayInstallment, formatCurrency, onEditCustomer, onClose, onDetailsLoaded }: { customer: any, onPayInstallment: () => void, formatCurrency: (v: number) => string, onEditCustomer: () => void, onClose?: () => void, onDetailsLoaded?: (fee: any) => void }) {
     const [activeTab, setActiveTab] = useState('overview');
+    const [installationFee, setInstallationFee] = useState<any>(null); // Local copy for UI
+
     const router = useRouter();
 
     // Comprehensive Customer Details State
@@ -777,9 +792,6 @@ function CustomerDrawerContent({ customer, installationFee, onPayInstallment, fo
     const [rates, setRates] = useState<{ id: number, name: string, code: string }[]>([]);
     const [isUpdatingRate, setIsUpdatingRate] = useState(false);
 
-    // Meter Records State
-    const [meterRecords, setMeterRecords] = useState<any[]>([]);
-    const [loadingRecords, setLoadingRecords] = useState(false);
 
     // Legacy Input State
     const [isLegacyModalOpen, setIsLegacyModalOpen] = useState(false);
@@ -811,29 +823,26 @@ function CustomerDrawerContent({ customer, installationFee, onPayInstallment, fo
     const [exportMode, setExportMode] = useState<'single' | 'all'>('all');
     const [exportBill, setExportBill] = useState<BillForExport | undefined>(undefined);
 
-    // Load comprehensive customer details
+    const refreshDetails = async () => {
+        const details = await getCustomerDetails(customer.id);
+        if (details) {
+            setCustomerDetails(details);
+            setInstallationFee(details.installation);
+            if (onDetailsLoaded) onDetailsLoaded(details.installation);
+        }
+    };
+
+    // Load comprehensive customer details (Includes bills, stats, and installation)
     useEffect(() => {
         if (customer?.id) {
             setLoadingDetails(true);
-            getCustomerDetails(customer.id).then(details => {
-                setCustomerDetails(details);
-                setLoadingDetails(false);
-            });
+            refreshDetails().finally(() => setLoadingDetails(false));
         }
     }, [customer?.id]);
 
     useEffect(() => {
         getRatesList().then(setRates);
     }, []);
-
-    // Load meter records
-    useEffect(() => {
-        setLoadingRecords(true);
-        getMeterRecords(customer.id).then((data) => {
-            setMeterRecords(data);
-            setLoadingRecords(false);
-        });
-    }, [customer.id]);
 
     // Load default rate when modal opens (only for new records)
     useEffect(() => {
@@ -1019,11 +1028,8 @@ Mohon untuk segera melakukan pelunasan. Terima kasih.`;
             setMeterLast("");
             setMeterCurrent("");
             setIsPaid("unpaid");
-            // Reload records
-            getMeterRecords(customer.id).then(setMeterRecords);
-            getCustomerDetails(customer.id).then(details => {
-                setCustomerDetails(details);
-            });
+            // Reload data efficiently
+            await refreshDetails();
             setActiveTab('bills');
             router.refresh();
         }
@@ -1052,10 +1058,8 @@ Mohon untuk segera melakukan pelunasan. Terima kasih.`;
             toast.error(res.error);
         } else {
             toast.success("Data berhasil dihapus!");
-            // Reload records
-            getMeterRecords(customer.id).then(setMeterRecords);
-            // Reload summary stats
-            getCustomerDetails(customer.id).then(setCustomerDetails);
+            // Reload everything from single source
+            await refreshDetails();
             router.refresh();
         }
 
@@ -1088,7 +1092,7 @@ Mohon untuk segera melakukan pelunasan. Terima kasih.`;
         } else {
             toast.success(`Pelanggan berhasil ${newStatus === 'active' ? 'diaktifkan' : 'dinonaktifkan'}!`);
             // Reload details
-            getCustomerDetails(customer.id).then(setCustomerDetails);
+            await refreshDetails();
             router.refresh();
         }
 
@@ -1130,7 +1134,7 @@ Mohon untuk segera melakukan pelunasan. Terima kasih.`;
         } else {
             toast.success("Pelanggan berhasil diaktifkan kembali!");
             // Reload details
-            getCustomerDetails(customer.id).then(setCustomerDetails);
+            await refreshDetails();
             router.refresh();
             setReinstallFee("");
         }
@@ -1856,7 +1860,7 @@ Mohon untuk segera melakukan pelunasan. Terima kasih.`;
                         <AlertDialogTitle>Hapus Tagihan?</AlertDialogTitle>
                         <AlertDialogDescription>
                             Apakah Anda yakin ingin menghapus tagihan ini? Data tidak bisa dikembalikan.
-                            {meterRecords.find(r => r.id === deleteRecordId)?.status === 'paid' && (
+                            {customerDetails?.bills.find(r => r.id === deleteRecordId)?.status === 'paid' && (
                                 <span className="block mt-2 text-rose-600 font-medium">
                                     ⚠️ Tagihan ini sudah lunas. Data transaksi terkait juga akan dihapus.
                                 </span>
