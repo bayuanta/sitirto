@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect, useRef } from "react";
 import {
     AreaChart,
     Area,
@@ -39,12 +40,35 @@ const formatFullCurrency = (amount: number) => {
 
 // === DAILY TREND CHART ===
 export function DailyTrendChart({ data }: { data: any[] }) {
+    const containerRef = useRef<HTMLDivElement>(null);
+    const [dimensions, setDimensions] = useState({ width: 0, height: 320 });
+    const [mounted, setMounted] = useState(false);
+
+    useEffect(() => {
+        setMounted(true);
+        if (!containerRef.current) return;
+        
+        const resizeObserver = new ResizeObserver((entries) => {
+            if (entries[0].contentRect.width > 0) {
+                setDimensions({
+                    width: entries[0].contentRect.width,
+                    height: 320
+                });
+            }
+        });
+
+        resizeObserver.observe(containerRef.current);
+        return () => resizeObserver.disconnect();
+    }, []);
+    
     const avgRevenue = data.length > 0 ? data[0].average : 0;
 
     return (
-        <div className="h-[320px] w-full">
-            <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={data} margin={{ top: 20, right: 10, left: -20, bottom: 0 }}>
+        <div ref={containerRef} className="h-[320px] w-full bg-slate-50/50 rounded-2xl relative overflow-hidden">
+            {(!mounted || dimensions.width === 0) ? (
+                <div className="absolute inset-0 animate-pulse bg-slate-100" />
+            ) : (
+                <AreaChart width={dimensions.width} height={dimensions.height} data={data} margin={{ top: 20, right: 10, left: -20, bottom: 0 }}>
                     <defs>
                         <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
                             <stop offset="5%" stopColor="#6366f1" stopOpacity={0.3} />
@@ -104,17 +128,40 @@ export function DailyTrendChart({ data }: { data: any[] }) {
                         activeDot={{ r: 6, stroke: 'white', strokeWidth: 3, fill: '#6366f1' }}
                     />
                 </AreaChart>
-            </ResponsiveContainer>
+            )}
         </div>
     );
 }
 
 // === WEEKLY BAR CHART ===
 export function WeeklyBarChart({ data }: { data: any[] }) {
+    const containerRef = useRef<HTMLDivElement>(null);
+    const [dimensions, setDimensions] = useState({ width: 0, height: 280 });
+    const [mounted, setMounted] = useState(false);
+
+    useEffect(() => {
+        setMounted(true);
+        if (!containerRef.current) return;
+        
+        const resizeObserver = new ResizeObserver((entries) => {
+            if (entries[0].contentRect.width > 0) {
+                setDimensions({
+                    width: entries[0].contentRect.width,
+                    height: 280
+                });
+            }
+        });
+
+        resizeObserver.observe(containerRef.current);
+        return () => resizeObserver.disconnect();
+    }, []);
+
     return (
-        <div className="h-[280px] w-full">
-            <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={data} margin={{ top: 20, right: 10, left: -20, bottom: 0 }}>
+        <div ref={containerRef} className="h-[280px] w-full bg-slate-50/50 rounded-2xl relative overflow-hidden">
+            {(!mounted || dimensions.width === 0) ? (
+                <div className="absolute inset-0 animate-pulse bg-slate-100" />
+            ) : (
+                <BarChart width={dimensions.width} height={dimensions.height} data={data} margin={{ top: 20, right: 10, left: -20, bottom: 0 }}>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
                     <XAxis
                         dataKey="week"
@@ -147,17 +194,40 @@ export function WeeklyBarChart({ data }: { data: any[] }) {
                         maxBarSize={50}
                     />
                 </BarChart>
-            </ResponsiveContainer>
+            )}
         </div>
     );
 }
 
 // === PAYMENT METHOD PIE CHART ===
 export function PaymentMethodChart({ data }: { data: any[] }) {
+    const containerRef = useRef<HTMLDivElement>(null);
+    const [dimensions, setDimensions] = useState({ width: 0, height: 280 });
+    const [mounted, setMounted] = useState(false);
+
+    useEffect(() => {
+        setMounted(true);
+        if (!containerRef.current) return;
+        
+        const resizeObserver = new ResizeObserver((entries) => {
+            if (entries[0].contentRect.width > 0) {
+                setDimensions({
+                    width: entries[0].contentRect.width,
+                    height: 280
+                });
+            }
+        });
+
+        resizeObserver.observe(containerRef.current);
+        return () => resizeObserver.disconnect();
+    }, []);
+
     return (
-        <div className="h-[280px] w-full flex items-center justify-center">
-            <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
+        <div ref={containerRef} className="h-[280px] w-full flex items-center justify-center bg-slate-50/50 rounded-2xl relative overflow-hidden">
+            {(!mounted || dimensions.width === 0) ? (
+                <div className="absolute inset-0 animate-pulse bg-slate-100" />
+            ) : (
+                <PieChart width={dimensions.width} height={dimensions.height}>
                     <Pie
                         data={data}
                         cx="50%"
@@ -200,19 +270,44 @@ export function PaymentMethodChart({ data }: { data: any[] }) {
                         )}
                     />
                 </PieChart>
-            </ResponsiveContainer>
+            )}
         </div>
     );
 }
 
 // === AREA BREAKDOWN BAR CHART ===
 export function AreaBreakdownChart({ data }: { data: any[] }) {
+    const containerRef = useRef<HTMLDivElement>(null);
+    const [dimensions, setDimensions] = useState({ width: 0, height: 280 });
+    const [mounted, setMounted] = useState(false);
+
+    useEffect(() => {
+        setMounted(true);
+        if (!containerRef.current) return;
+        
+        const resizeObserver = new ResizeObserver((entries) => {
+            if (entries[0].contentRect.width > 0) {
+                setDimensions({
+                    width: entries[0].contentRect.width,
+                    height: 280
+                });
+            }
+        });
+
+        resizeObserver.observe(containerRef.current);
+        return () => resizeObserver.disconnect();
+    }, []);
+
     const COLORS = ['#6366f1', '#8b5cf6', '#a855f7', '#d946ef', '#ec4899'];
 
     return (
-        <div className="h-[280px] w-full">
-            <ResponsiveContainer width="100%" height="100%">
+        <div ref={containerRef} className="h-[280px] w-full bg-slate-50/50 rounded-2xl relative overflow-hidden">
+            {(!mounted || dimensions.width === 0) ? (
+                <div className="absolute inset-0 animate-pulse bg-slate-100" />
+            ) : (
                 <BarChart
+                    width={dimensions.width}
+                    height={dimensions.height}
                     data={data}
                     layout="vertical"
                     margin={{ top: 10, right: 30, left: 10, bottom: 10 }}
@@ -253,7 +348,7 @@ export function AreaBreakdownChart({ data }: { data: any[] }) {
                         ))}
                     </Bar>
                 </BarChart>
-            </ResponsiveContainer>
+            )}
         </div>
     );
 }

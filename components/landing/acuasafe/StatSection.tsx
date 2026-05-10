@@ -15,7 +15,7 @@ export function StatSection() {
         <section className="py-20 bg-blue-600 relative overflow-hidden text-white">
             {/* Background */}
             <div className="absolute inset-0 opacity-20 pointer-events-none mix-blend-overlay">
-                <Image src="/acuasafe/images/shape/shape-5.png" alt="bg" fill className="object-cover" />
+                <Image src="/acuasafe/images/shape/shape-5.png" alt="bg" fill className="object-cover" sizes="100vw" />
             </div>
 
             <div className="container max-w-7xl mx-auto px-4 relative z-10">

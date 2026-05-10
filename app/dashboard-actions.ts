@@ -62,10 +62,12 @@ export async function getUnifiedDashboardData(year: number = new Date().getFullY
             // Q1: Active Customers Count
             supabase.from("customers").select("*", { count: "exact", head: true }).eq("status", "active"),
             
-            // Q2: Transactions (Current Year)
+            // Q2: Transactions (Specific Year) - Excluding Legacy Data Migration
             supabase.from("transactions")
                 .select("total_amount, method, created_at, customer:customers(name)")
-                .gte("created_at", `${currentYear}-01-01T00:00:00Z`)
+                .gte("created_at", `${year}-01-01T00:00:00Z`)
+                .lt("created_at", `${year + 1}-01-01T00:00:00Z`)
+                .neq("notes", "Migrasi Data Historis")
                 .order("created_at", { ascending: false }),
 
             // Q3: Meter Records (Current Year OR Unpaid)
@@ -166,7 +168,7 @@ export async function getUnifiedDashboardData(year: number = new Date().getFullY
         let unpaidCount = 0;
         const monthlyChart = monthsShort.map(m => ({ name: m, total_bill: 0, paid: 0, unpaid: 0 }));
         let totalBillYearly = 0;
-        let totalPaidYearly = 0;
+        let totalPaidYearlyFromRecords = 0;
 
         records.forEach((r: any) => {
             if (r.year === year) {
@@ -182,12 +184,13 @@ export async function getUnifiedDashboardData(year: number = new Date().getFullY
                     monthlyChart[mIndex].paid += paid;
                     monthlyChart[mIndex].unpaid += (bill - paid);
                     totalBillYearly += bill;
-                    totalPaidYearly += paid;
+                    totalPaidYearlyFromRecords += paid;
                 }
             }
         });
 
         const totalRec = paidCount + unpaidCount;
+        const totalPaidYearly = totalPaidYearlyFromRecords; // Chart Summary includes legacy
 
         return {
             stats: {
@@ -520,22 +523,20 @@ export async function getPaymentStatusStats() {
 }
 
 export async function getPaymentStatistics(year: number) {
-    // Fetch all meter records for the selected year
+    // Fetch all meter records for the selected year (Includes Legacy)
     const { data: records, error } = await supabase
         .from("meter_records")
-        .select("month, bill_amount, paid_amount, customers!inner(status)")
+        .select("month, bill_amount, paid_amount, status, customers!inner(status)")
         .eq("year", year)
         .eq("customers.status", "active");
 
     if (error || !records) {
-        // Return empty data if error
         return {
             monthly: Array(12).fill({ name: "", total_bill: 0, paid: 0, unpaid: 0 }),
             summary: { totalBill: 0, totalPaid: 0, totalUnpaid: 0 }
         };
     }
 
-    // Initialize 12 months data
     const months = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agt", "Sep", "Okt", "Nov", "Des"];
     const monthlyData = months.map(m => ({ name: m, total_bill: 0, paid: 0, unpaid: 0 }));
 
@@ -543,7 +544,7 @@ export async function getPaymentStatistics(year: number) {
     let totalPaidYearly = 0;
 
     records.forEach(r => {
-        const mIndex = r.month - 1; // month is 1-12
+        const mIndex = r.month - 1;
         if (mIndex >= 0 && mIndex < 12) {
             const bill = r.bill_amount || 0;
             const paid = r.paid_amount || 0;
@@ -556,7 +557,6 @@ export async function getPaymentStatistics(year: number) {
         }
     });
 
-    // Calculate unpaid for each month and format
     const formattedData = monthlyData.map(m => ({
         ...m,
         unpaid: m.total_bill - m.paid

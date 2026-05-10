@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Loader2, Calendar } from "lucide-react";
+import { Label } from "@/components/ui/label";
 
 export function ReportFilters() {
     const router = useRouter();
@@ -98,11 +99,13 @@ export function ReportFilters() {
 
                 <Calendar className="w-4 h-4 text-slate-400 ml-1" />
 
+                <Label htmlFor="month-select-trigger" className="sr-only">Filter Bulan</Label>
                 <Select
+                    name="month-select"
                     value={quickFilter === "custom" ? month : ""}
                     onValueChange={(v) => handleFilterChange("month", v)}
                 >
-                    <SelectTrigger className="w-[110px] border-0 focus:ring-0 shadow-none bg-transparent font-semibold text-slate-700 h-8 text-sm">
+                    <SelectTrigger id="month-select-trigger" className="w-[110px] border-0 focus:ring-0 shadow-none bg-transparent font-semibold text-slate-700 h-8 text-sm">
                         <SelectValue placeholder="Bulan" />
                     </SelectTrigger>
                     <SelectContent>
@@ -114,11 +117,13 @@ export function ReportFilters() {
 
                 <div className="w-px h-5 bg-slate-200" />
 
+                <Label htmlFor="year-select-trigger" className="sr-only">Filter Tahun</Label>
                 <Select
+                    name="year-select"
                     value={quickFilter === "custom" ? year : ""}
                     onValueChange={(v) => handleFilterChange("year", v)}
                 >
-                    <SelectTrigger className="w-[80px] border-0 focus:ring-0 shadow-none bg-transparent font-semibold text-slate-700 h-8 text-sm">
+                    <SelectTrigger id="year-select-trigger" className="w-[80px] border-0 focus:ring-0 shadow-none bg-transparent font-semibold text-slate-700 h-8 text-sm">
                         <SelectValue placeholder="Tahun" />
                     </SelectTrigger>
                     <SelectContent>

@@ -66,6 +66,7 @@ export function FooterSection() {
                                         alt="PAMSIMAS Footer Logo"
                                         fill
                                         className="object-contain brightness-0 invert"
+                                        sizes="48px"
                                     />
                                 </div>
                                 <span className="font-bold text-xl text-white">PAMSIMAS</span>

@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import {
     BarChart,
     Bar,
@@ -35,18 +36,26 @@ const formatFullCurrency = (amount: number) => {
 
 // === AREA PIE CHART ===
 export function AreaPieChart({ data }: { data: any[] }) {
+    const [mounted, setMounted] = useState(false);
+    useEffect(() => {
+        const timer = setTimeout(() => setMounted(true), 100);
+        return () => clearTimeout(timer);
+    }, []);
+
     const COLORS = ['#6366f1', '#8b5cf6', '#a855f7', '#d946ef', '#ec4899', '#f43f5e'];
 
+    if (!mounted) return <div className="h-[400px] w-full bg-slate-50/50 animate-pulse rounded-2xl" />;
+
     return (
-        <div className="h-[280px] w-full">
-            <ResponsiveContainer width="100%" height="100%">
+        <div className="h-[400px] w-full">
+            <ResponsiveContainer width="100%" height={400}>
                 <PieChart>
                     <Pie
                         data={data}
                         cx="50%"
-                        cy="45%"
-                        innerRadius={50}
-                        outerRadius={80}
+                        cy="40%"
+                        innerRadius={60}
+                        outerRadius={90}
                         paddingAngle={4}
                         dataKey="amount"
                         cornerRadius={6}
@@ -72,10 +81,9 @@ export function AreaPieChart({ data }: { data: any[] }) {
                     />
                     <Legend
                         verticalAlign="bottom"
-                        height={40}
                         iconType="circle"
                         formatter={(value, entry: any) => (
-                            <span className="text-slate-600 font-semibold text-xs ml-1">
+                            <span className="text-slate-600 font-semibold text-[10px] ml-1">
                                 {value} ({entry.payload.percentage}%)
                             </span>
                         )}
@@ -88,9 +96,17 @@ export function AreaPieChart({ data }: { data: any[] }) {
 
 // === AGING BAR CHART ===
 export function AgingBarChart({ data }: { data: any[] }) {
+    const [mounted, setMounted] = useState(false);
+    useEffect(() => {
+        const timer = setTimeout(() => setMounted(true), 100);
+        return () => clearTimeout(timer);
+    }, []);
+
+    if (!mounted) return <div className="h-[280px] w-full bg-slate-50/50 animate-pulse rounded-2xl" />;
+
     return (
         <div className="h-[280px] w-full">
-            <ResponsiveContainer width="100%" height="100%">
+            <ResponsiveContainer width="100%" height={280}>
                 <BarChart data={data} margin={{ top: 20, right: 10, left: -10, bottom: 0 }}>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
                     <XAxis
@@ -134,11 +150,19 @@ export function AgingBarChart({ data }: { data: any[] }) {
 
 // === HORIZONTAL BAR (Area Breakdown) ===
 export function AreaBreakdownChart({ data }: { data: any[] }) {
+    const [mounted, setMounted] = useState(false);
+    useEffect(() => {
+        const timer = setTimeout(() => setMounted(true), 100);
+        return () => clearTimeout(timer);
+    }, []);
+
     const COLORS = ['#ef4444', '#f97316', '#f59e0b', '#eab308', '#84cc16'];
+
+    if (!mounted) return <div className="h-[280px] w-full bg-slate-50/50 animate-pulse rounded-2xl" />;
 
     return (
         <div className="h-[280px] w-full">
-            <ResponsiveContainer width="100%" height="100%">
+            <ResponsiveContainer width="100%" height={280}>
                 <BarChart
                     data={data}
                     layout="vertical"

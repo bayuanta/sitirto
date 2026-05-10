@@ -49,6 +49,8 @@ export function BillChecker() {
             {/* Input Form (Always Visible or in Hero) */}
             <div className="w-full max-w-md bg-white/10 backdrop-blur-md p-2 rounded-2xl border border-white/20 shadow-xl flex gap-2">
                 <Input
+                    id="bill-conn-number"
+                    name="bill-conn-number"
                     placeholder="Masukkan Nomor Pelanggan (Contoh: SR-001)"
                     className="bg-white/90 border-transparent focus:bg-white h-12 text-slate-800 placeholder:text-slate-400"
                     value={connNumber}

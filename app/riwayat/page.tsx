@@ -7,6 +7,7 @@ import {
     Banknote, RefreshCcw, TrendingUp, ChevronDown,
     ChevronUp, Loader2, Trash2, AlertTriangle, Printer
 } from 'lucide-react';
+import { Label } from "@/components/ui/label";
 import {
     getWaterBillTransactions,
     getInstallationPayments,
@@ -248,14 +249,20 @@ export default function RiwayatPage() {
                     {/* Date Range */}
                     <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-lg px-3 h-10 w-full md:w-auto">
                         <Calendar className="h-4 w-4 text-slate-400" />
+                        <Label htmlFor="start-date-input" className="sr-only">Tanggal Mulai</Label>
                         <input
+                            id="start-date-input"
+                            name="start-date"
                             type="date"
                             value={dateRange.start}
                             onChange={(e) => setDateRange(prev => ({ ...prev, start: e.target.value }))}
                             className="bg-transparent text-xs font-medium text-slate-700 focus:outline-none w-24"
                         />
                         <span className="text-slate-300">-</span>
+                        <Label htmlFor="end-date-input" className="sr-only">Tanggal Selesai</Label>
                         <input
+                            id="end-date-input"
+                            name="end-date"
                             type="date"
                             value={dateRange.end}
                             onChange={(e) => setDateRange(prev => ({ ...prev, end: e.target.value }))}
@@ -298,8 +305,11 @@ export default function RiwayatPage() {
 
                     {/* Search */}
                     <div className="relative w-full md:w-64">
+                        <Label htmlFor="history-search-input" className="sr-only">Cari Riwayat</Label>
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
                         <input
+                            id="history-search-input"
+                            name="history-search"
                             type="text"
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}

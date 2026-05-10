@@ -467,6 +467,9 @@ export async function insertLegacyRecord(payload: {
 
         // 2. If paid, create transaction record
         if (isPaid && meterRecord) {
+            // Use the end of the specified month/year for historical accuracy
+            const legacyDate = new Date(year, month, 0).toISOString();
+            
             await supabase
                 .from("transactions")
                 .insert({
@@ -474,7 +477,9 @@ export async function insertLegacyRecord(payload: {
                     total_amount: billAmount,
                     method: 'cash',
                     notes: 'Migrasi Data Historis',
-                    payment_date: new Date().toISOString()
+                    payment_date: legacyDate,
+                    created_at: legacyDate, // Also set created_at to avoid showing up in current month reports
+                    is_deposited: true      // Mark as already deposited to avoid setoran menu
                 });
         }
 
@@ -604,6 +609,8 @@ export async function updateMeterRecord(recordId: number, payload: {
                 .eq("total_amount", oldRecord.bill_amount);
         } else if (!wasPayd && nowPaid) {
             // Was unpaid, now paid → create transaction
+            // Use the end of the specified month/year for historical accuracy
+            const legacyDate = new Date(year, month, 0).toISOString();
             await supabase
                 .from("transactions")
                 .insert({
@@ -611,7 +618,9 @@ export async function updateMeterRecord(recordId: number, payload: {
                     total_amount: newBillAmount,
                     method: 'cash',
                     notes: 'Migrasi Data Historis',
-                    payment_date: new Date().toISOString()
+                    payment_date: legacyDate,
+                    created_at: legacyDate, // Also set created_at
+                    is_deposited: true      // Mark as already deposited
                 });
         } else if (wasPayd && nowPaid && oldRecord.bill_amount !== newBillAmount) {
             // Still paid, but amount changed → update transaction
@@ -623,6 +632,7 @@ export async function updateMeterRecord(recordId: number, payload: {
                 .eq("notes", "Migrasi Data Historis")
                 .eq("total_amount", oldRecord.bill_amount);
 
+            const legacyDate = new Date(year, month, 0).toISOString();
             await supabase
                 .from("transactions")
                 .insert({
@@ -630,7 +640,9 @@ export async function updateMeterRecord(recordId: number, payload: {
                     total_amount: newBillAmount,
                     method: 'cash',
                     notes: 'Migrasi Data Historis',
-                    payment_date: new Date().toISOString()
+                    payment_date: legacyDate,
+                    created_at: legacyDate, // Also set created_at
+                    is_deposited: true      // Mark as already deposited
                 });
         }
 

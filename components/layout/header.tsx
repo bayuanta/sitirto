@@ -67,6 +67,8 @@ export function Header({ className, onMenuClick }: HeaderProps) {
                 <div className="relative hidden lg:block w-72">
                     <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
                     <Input
+                        id="global-search"
+                        name="global-search"
                         placeholder="Cari data..."
                         className="pl-10 h-10 bg-slate-50 border-transparent focus:bg-white focus:border-indigo-500 rounded-full transition-all font-medium text-xs"
                     />

@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import {
     BarChart,
     Bar,
@@ -18,6 +19,14 @@ import { Card, CardContent } from "@/components/ui/card";
 
 // --- Revenue Trend Chart (Bar Version) ---
 export function RevenueTrendChart({ data }: { data: any[] }) {
+    const [mounted, setMounted] = useState(false);
+    useEffect(() => {
+        const timer = setTimeout(() => setMounted(true), 100);
+        return () => clearTimeout(timer);
+    }, []);
+
+    if (!mounted) return <div className="h-full w-full bg-slate-50/50 animate-pulse rounded-2xl" />;
+
     if (!data || data.length === 0) {
         return (
             <div className="h-full flex items-center justify-center text-slate-400 text-sm">
@@ -28,7 +37,7 @@ export function RevenueTrendChart({ data }: { data: any[] }) {
 
     return (
         <div className="h-full w-full min-h-[250px]">
-            <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={250}>
+            <ResponsiveContainer width="100%" height={250} minWidth={0} minHeight={250}>
                 <BarChart
                     data={data}
                     margin={{
@@ -86,9 +95,17 @@ export function RevenueTrendChart({ data }: { data: any[] }) {
 
 // --- Usage Trend Chart (Line Version) ---
 export function UsageTrendChart({ data }: { data: any[] }) {
+    const [mounted, setMounted] = useState(false);
+    useEffect(() => {
+        const timer = setTimeout(() => setMounted(true), 100);
+        return () => clearTimeout(timer);
+    }, []);
+
+    if (!mounted) return <div className="h-full w-full bg-slate-50/50 animate-pulse rounded-2xl" />;
+
     return (
         <div style={{ width: "100%", height: "100%", minHeight: 200 }}>
-            <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={200}>
+            <ResponsiveContainer width="100%" height={200} minWidth={0} minHeight={200}>
                 <LineChart
                     data={data}
                     margin={{
@@ -146,6 +163,14 @@ export function UsageTrendChart({ data }: { data: any[] }) {
 
 // --- Payment Method Donut Chart ---
 export function PaymentMethodChart({ data }: { data: any[] }) {
+    const [mounted, setMounted] = useState(false);
+    useEffect(() => {
+        const timer = setTimeout(() => setMounted(true), 100);
+        return () => clearTimeout(timer);
+    }, []);
+
+    if (!mounted) return <div className="h-full w-full bg-slate-50/50 animate-pulse rounded-2xl" />;
+
     if (!data || data.length === 0) {
         return (
             <div className="h-full flex items-center justify-center text-slate-400 text-sm">
@@ -157,7 +182,7 @@ export function PaymentMethodChart({ data }: { data: any[] }) {
     return (
         <div className="h-full flex flex-col">
             <div className="flex-1 min-h-[200px]">
-                <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={200}>
+                <ResponsiveContainer width="100%" height={200} minWidth={0} minHeight={200}>
                     <PieChart>
                         <Pie
                             data={data}

@@ -22,6 +22,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getPaymentStatistics } from "@/app/dashboard-actions";
 import { Loader2 } from "lucide-react";
+import { Label } from "@/components/ui/label";
 
 interface PaymentStatisticsProps {
     initialData: any[];
@@ -92,6 +93,12 @@ export function PaymentStatisticsChart({ initialData, initialSummary, currentYea
     const [summary, setSummary] = useState(initialSummary);
     const [loading, setLoading] = useState(false);
     const [selectedMonth, setSelectedMonth] = useState<string | null>(null);
+    const [mounted, setMounted] = useState(false);
+
+    useEffect(() => {
+        const timer = setTimeout(() => setMounted(true), 100);
+        return () => clearTimeout(timer);
+    }, []);
 
     const handleYearChange = async (selectedYear: string) => {
         setYear(selectedYear);
@@ -150,12 +157,13 @@ export function PaymentStatisticsChart({ initialData, initialSummary, currentYea
                     Statistik Pembayaran
                     {selectedMonth && <span className="ml-2 text-sm font-medium text-emerald-600 bg-emerald-50 px-2 py-1 rounded-lg">Bulan {selectedMonth}</span>}
                 </CardTitle>
-                <div className="flex items-center gap-2">
-                    {loading && <Loader2 className="h-4 w-4 animate-spin text-indigo-600" />}
-                    <Select value={year} onValueChange={handleYearChange}>
-                        <SelectTrigger className="w-[100px] h-9 text-xs font-bold border-slate-200">
-                            <SelectValue placeholder="Tahun" />
-                        </SelectTrigger>
+                    <div className="flex items-center gap-2">
+                        {loading && <Loader2 className="h-4 w-4 animate-spin text-indigo-600" />}
+                        <Label htmlFor="year-filter-trigger" className="sr-only">Filter Tahun</Label>
+                        <Select name="year-filter" value={year} onValueChange={handleYearChange}>
+                            <SelectTrigger id="year-filter-trigger" className="w-[100px] h-9 text-xs font-bold border-slate-200">
+                                <SelectValue placeholder="Tahun" />
+                            </SelectTrigger>
                         <SelectContent>
                             {years.map((y) => (
                                 <SelectItem key={y} value={y} className="text-xs font-medium">
@@ -171,73 +179,73 @@ export function PaymentStatisticsChart({ initialData, initialSummary, currentYea
 
                 {/* CHART AREA */}
                 <div className="h-[350px] w-full min-w-0 mb-8 relative">
-                    <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={350}>
-                        <BarChart
-                            data={data}
-                            margin={{ top: 20, right: 30, left: 0, bottom: 5 }}
-                            style={{ outline: 'none' }}
-                        >
-                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                            <XAxis
-                                dataKey="name"
-                                tick={{ fontSize: 12, fill: '#64748b', fontWeight: 600 }}
-                                axisLine={false}
-                                tickLine={false}
-                                dy={10}
-                            />
-                            <YAxis hide />
-                            <Tooltip 
-                                content={<CustomTooltip />} 
-                                cursor={false} 
-                            />
-                            <Legend
-                                wrapperStyle={{ paddingTop: '20px' }}
-                                iconType="circle"
-                                iconSize={8}
-                                formatter={(value) => <span className="text-xs font-bold text-slate-600 ml-1">{value}</span>}
-                            />
-
-                            {/* Bar Bawah: Unpaid (Rose) */}
-                            <Bar
-                                dataKey="unpaid"
-                                name="Belum Bayar"
-                                stackId="a"
-                                fill="#f43f5e"
-                                radius={[0, 0, 4, 4]}
-                                barSize={40}
-                                cursor="pointer"
-                                onClick={(data) => handleBarClick(data)}
+                    {!mounted ? (
+                        <div className="h-full w-full bg-slate-50 animate-pulse rounded-xl flex items-center justify-center">
+                            <Loader2 className="h-6 w-6 animate-spin text-slate-200" />
+                        </div>
+                    ) : (
+                        <ResponsiveContainer width="100%" height={350} minWidth={0} minHeight={350}>
+                            <BarChart
+                                data={data}
+                                margin={{ top: 20, right: 30, left: 0, bottom: 5 }}
+                                style={{ outline: 'none' }}
+                                barGap={-24}
+                                barCategoryGap="20%"
                             >
-                                {data.map((entry: any, index: number) => (
-                                    <Cell
-                                        key={`cell-unpaid-${index}`}
-                                        fill={'#f43f5e'}
-                                        fillOpacity={selectedMonth === entry.name ? 1 : (selectedMonth ? 0.3 : 1)}
-                                    />
-                                ))}
-                            </Bar>
+                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                                <XAxis
+                                    dataKey="name"
+                                    tick={{ fontSize: 12, fill: '#64748b', fontWeight: 600 }}
+                                    axisLine={false}
+                                    tickLine={false}
+                                    dy={10}
+                                />
+                                <YAxis hide />
+                                <Tooltip 
+                                    content={<CustomTooltip />} 
+                                    cursor={false} 
+                                />
+                                <Legend
+                                    wrapperStyle={{ paddingTop: '20px' }}
+                                    iconType="circle"
+                                    iconSize={8}
+                                    formatter={(value) => <span className="text-xs font-bold text-slate-600 ml-1">{value}</span>}
+                                />
 
-                            {/* Bar Atas: Paid (Slate/Gray) */}
-                            <Bar
-                                dataKey="paid"
-                                name="Sudah Lunas"
-                                stackId="a"
-                                fill="#e2e8f0"
-                                radius={[4, 4, 0, 0]}
-                                barSize={40}
-                                cursor="pointer"
-                                onClick={(data) => handleBarClick(data)}
-                            >
-                                {data.map((entry: any, index: number) => (
-                                    <Cell
-                                        key={`cell-paid-${index}`}
-                                        fill={'#e2e8f0'}
-                                        fillOpacity={selectedMonth === entry.name ? 1 : (selectedMonth ? 0.3 : 1)}
-                                    />
-                                ))}
-                            </Bar>
-                        </BarChart>
-                    </ResponsiveContainer>
+                                {/* Background Bar: Total Bill (The Vessel) */}
+                                <Bar
+                                    dataKey="total_bill"
+                                    name="Total Tagihan"
+                                    fill="#f1f5f9"
+                                    radius={[20, 20, 20, 20]}
+                                    barSize={24}
+                                    isAnimationActive={false}
+                                />
+
+                                {/* Foreground Bar: Unpaid (The Red Liquid) */}
+                                <Bar
+                                    dataKey="unpaid"
+                                    name="Belum Bayar"
+                                    fill="#f43f5e"
+                                    radius={[20, 20, 20, 20]}
+                                    barSize={24}
+                                    cursor="pointer"
+                                    onClick={(data) => handleBarClick(data)}
+                                    // Move this bar on top of the background bar
+                                    xAxisId={0}
+                                    style={{ transform: 'translateY(0)', transition: 'all 0.5s ease-out' }}
+                                >
+                                    {data.map((entry: any, index: number) => (
+                                        <Cell
+                                            key={`cell-unpaid-${index}`}
+                                            fill={'#f43f5e'}
+                                            fillOpacity={selectedMonth === entry.name ? 1 : (selectedMonth ? 0.3 : 1)}
+                                        />
+                                    ))}
+                                </Bar>
+                            </BarChart>
+                        </ResponsiveContainer>
+                    )}
 
                     {loading && (
                         <div className="absolute inset-0 bg-white/50 backdrop-blur-[1px] flex items-center justify-center z-10 transition-all duration-300">

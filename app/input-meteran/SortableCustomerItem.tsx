@@ -64,6 +64,8 @@ export function SortableCustomerItem({ id, index, customer, onOrderChange }: Sor
             
             <div className="w-12 shrink-0">
                 <input 
+                    id={`sortable-order-${customer.id}`}
+                    name={`sortable-order-${customer.id}`}
                     type="number" 
                     value={localValue}
                     onChange={(e) => setLocalValue(e.target.value)}

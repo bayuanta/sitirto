@@ -150,13 +150,15 @@ export function HeroSection() {
 
             {/* Mobile Image */}
             <div className="lg:hidden relative z-[1] -mt-20 mb-10 px-4">
-                <Image
-                    src="/acuasafe/images/banner/vector-2.png"
-                    alt="Water Splash"
-                    width={500}
-                    height={300}
-                    className="object-contain mx-auto"
-                />
+                <div className="relative w-full aspect-[5/3] max-w-[500px] mx-auto">
+                    <Image
+                        src="/acuasafe/images/banner/vector-2.png"
+                        alt="Water Splash"
+                        fill
+                        className="object-contain"
+                        sizes="(max-width: 768px) 100vw, 500px"
+                    />
+                </div>
             </div>
         </section>
     );

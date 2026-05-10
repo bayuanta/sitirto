@@ -31,6 +31,7 @@ import { TagihanImageExport } from "@/components/TagihanImageExport";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
@@ -608,9 +609,10 @@ export default function InputMeteranPage() {
                         
                         {/* Wilayah - Full Width Mobile, Fixed Width PC */}
                         <div className="relative w-full md:w-[180px]">
+                            <Label htmlFor="meter-area-filter" className="sr-only">Filter Wilayah</Label>
                             <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400 z-10" />
-                            <Select value={selectedArea} onValueChange={setSelectedArea}>
-                                <SelectTrigger className="pl-9 h-11 md:h-10 bg-white border-slate-200 rounded-xl md:rounded-lg text-xs font-bold text-slate-700 focus:ring-2 focus:ring-indigo-500 shadow-sm md:shadow-none">
+                            <Select name="meter-area-filter" value={selectedArea} onValueChange={setSelectedArea}>
+                                <SelectTrigger id="meter-area-filter" className="pl-9 h-11 md:h-10 bg-white border-slate-200 rounded-xl md:rounded-lg text-xs font-bold text-slate-700 focus:ring-2 focus:ring-indigo-500 shadow-sm md:shadow-none">
                                     <SelectValue placeholder="Wilayah" />
                                 </SelectTrigger>
                                 <SelectContent className="z-[9999]">
@@ -625,9 +627,10 @@ export default function InputMeteranPage() {
                         {/* Date Group: Month & Year Side-by-Side */}
                         <div className="flex items-center gap-2 w-full md:w-auto">
                             <div className="relative flex-1 md:w-[130px]">
+                                <Label htmlFor="meter-month-filter" className="sr-only">Filter Bulan</Label>
                                 <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400 z-10" />
-                                <Select value={selectedMonth.toString()} onValueChange={(v) => setSelectedMonth(parseInt(v))}>
-                                    <SelectTrigger className="pl-9 h-11 md:h-10 bg-white border-slate-200 rounded-xl md:rounded-lg text-[10px] md:text-xs font-bold text-slate-700 shadow-sm md:shadow-none uppercase">
+                                <Select name="meter-month-filter" value={selectedMonth.toString()} onValueChange={(v) => setSelectedMonth(parseInt(v))}>
+                                    <SelectTrigger id="meter-month-filter" className="pl-9 h-11 md:h-10 bg-white border-slate-200 rounded-xl md:rounded-lg text-[10px] md:text-xs font-bold text-slate-700 shadow-sm md:shadow-none uppercase">
                                         <SelectValue />
                                     </SelectTrigger>
                                     <SelectContent className="z-[9999]">
@@ -686,6 +689,8 @@ export default function InputMeteranPage() {
                 <div className="relative w-full mb-6">
                     <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
                     <Input
+                        id="meter-search"
+                        name="meter-search"
                         placeholder="Cari nama pelanggan atau No. SR..."
                         className="pl-10 h-10 rounded-full bg-slate-50 border-0 font-medium text-xs w-full"
                         value={searchTerm}
@@ -765,7 +770,15 @@ export default function InputMeteranPage() {
                                             <p className="text-[9px] font-bold text-slate-400 uppercase mb-1">Meter Lalu</p>
                                             <div className="flex flex-col gap-1">
                                                 {meterReplacements[c.id] ? (
-                                                    <Input type="number" className="h-6 w-full rounded-lg text-center text-[11px] font-black" value={manualMeterLast[c.id] || "0"} onChange={(e) => setManualMeterLast(prev => ({ ...prev, [c.id]: e.target.value }))} disabled={c.is_saved} />
+                                                    <Input 
+                                                        id={`meter-last-mobile-${c.id}`}
+                                                        name={`meter-last-mobile-${c.id}`}
+                                                        type="number" 
+                                                        className="h-6 w-full rounded-lg text-center text-[11px] font-black" 
+                                                        value={manualMeterLast[c.id] || "0"} 
+                                                        onChange={(e) => setManualMeterLast(prev => ({ ...prev, [c.id]: e.target.value }))} 
+                                                        disabled={c.is_saved} 
+                                                    />
                                                 ) : <span className="text-xs font-black text-slate-700">{c.meter_lalu}</span>}
                                                 <div className="flex items-center gap-1">
                                                     <Switch checked={meterReplacements[c.id] || false} onCheckedChange={(checked) => { setMeterReplacements(prev => ({ ...prev, [c.id]: checked })); if (checked) setManualMeterLast(prev => ({ ...prev, [c.id]: "0" })); }} disabled={c.is_saved} className="h-3 w-5" />
@@ -784,7 +797,15 @@ export default function InputMeteranPage() {
                                         <span className="text-[10px] font-bold text-slate-400 uppercase">Meter Lalu</span>
                                         <div className="flex items-center gap-2">
                                             {meterReplacements[c.id] ? (
-                                                <Input type="number" className="w-16 h-7 text-center text-xs font-black bg-amber-50 border-amber-200" value={manualMeterLast[c.id] || "0"} onChange={(e) => setManualMeterLast(prev => ({ ...prev, [c.id]: e.target.value }))} disabled={c.is_saved} />
+                                                <Input 
+                                                    id={`meter-last-desktop-${c.id}`}
+                                                    name={`meter-last-desktop-${c.id}`}
+                                                    type="number" 
+                                                    className="w-16 h-7 text-center text-xs font-black bg-amber-50 border-amber-200" 
+                                                    value={manualMeterLast[c.id] || "0"} 
+                                                    onChange={(e) => setManualMeterLast(prev => ({ ...prev, [c.id]: e.target.value }))} 
+                                                    disabled={c.is_saved} 
+                                                />
                                             ) : <span className="font-mono text-xs font-black text-slate-700 bg-slate-50 px-2 py-0.5 rounded">{c.meter_lalu}</span>}
                                             <div className="flex items-center gap-1">
                                                 <Switch checked={meterReplacements[c.id] || false} onCheckedChange={(checked) => { setMeterReplacements(prev => ({ ...prev, [c.id]: checked })); if (checked) setManualMeterLast(prev => ({ ...prev, [c.id]: "0" })); }} disabled={c.is_saved} className="h-3.5 w-6" />
@@ -797,6 +818,8 @@ export default function InputMeteranPage() {
                                         <div className="relative w-full md:w-32">
                                             <div className="md:hidden absolute -top-4 left-0"><p className="text-[9px] font-black text-indigo-500 uppercase tracking-widest">Meter Sekarang</p></div>
                                             <Input
+                                                id={`meter-current-${c.id}`}
+                                                name={`meter-current-${c.id}`}
                                                 ref={(el) => { if (el) inputRefs.current[c.id] = el; }}
                                                 type="number"
                                                 placeholder="Input Angka..."

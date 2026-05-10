@@ -4,6 +4,7 @@ import { useState, useMemo } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Label } from "@/components/ui/label";
 import {
     Search,
     Download,
@@ -140,8 +141,11 @@ export function TransactionTable({ data }: TransactionTableProps) {
                 {/* Search & Filters */}
                 <div className="flex flex-wrap gap-3">
                     <div className="relative w-full sm:w-[280px]">
+                        <Label htmlFor="transaction-search" className="sr-only">Cari Transaksi</Label>
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
                         <Input
+                            id="transaction-search"
+                            name="transaction-search"
                             placeholder="Cari nama, no. sambung, wilayah..."
                             className="pl-10 bg-slate-50 border-slate-200 focus:bg-white focus:border-indigo-300 transition-all rounded-xl text-sm h-10"
                             value={searchTerm}
@@ -152,27 +156,33 @@ export function TransactionTable({ data }: TransactionTableProps) {
                         />
                     </div>
 
-                    <Select value={methodFilter} onValueChange={(v) => { setMethodFilter(v); setCurrentPage(1); }}>
-                        <SelectTrigger className="w-[130px] rounded-xl border-slate-200 bg-slate-50 h-10">
-                            <SelectValue placeholder="Metode" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="all">Semua Metode</SelectItem>
-                            <SelectItem value="cash">Tunai</SelectItem>
-                            <SelectItem value="transfer">Transfer</SelectItem>
-                        </SelectContent>
-                    </Select>
+                    <div className="flex flex-col">
+                        <Label htmlFor="method-filter" className="sr-only">Filter Metode</Label>
+                        <Select name="method-filter" value={methodFilter} onValueChange={(v) => { setMethodFilter(v); setCurrentPage(1); }}>
+                            <SelectTrigger id="method-filter" className="w-[130px] rounded-xl border-slate-200 bg-slate-50 h-10">
+                                <SelectValue placeholder="Metode" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="all">Semua Metode</SelectItem>
+                                <SelectItem value="cash">Tunai</SelectItem>
+                                <SelectItem value="transfer">Transfer</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
 
-                    <Select value={depositFilter} onValueChange={(v) => { setDepositFilter(v); setCurrentPage(1); }}>
-                        <SelectTrigger className="w-[150px] rounded-xl border-slate-200 bg-slate-50 h-10">
-                            <SelectValue placeholder="Status Setor" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="all">Semua Status</SelectItem>
-                            <SelectItem value="deposited">Sudah Disetor</SelectItem>
-                            <SelectItem value="pending">Belum Disetor</SelectItem>
-                        </SelectContent>
-                    </Select>
+                    <div className="flex flex-col">
+                        <Label htmlFor="deposit-filter" className="sr-only">Filter Status Setor</Label>
+                        <Select name="deposit-filter" value={depositFilter} onValueChange={(v) => { setDepositFilter(v); setCurrentPage(1); }}>
+                            <SelectTrigger id="deposit-filter" className="w-[150px] rounded-xl border-slate-200 bg-slate-50 h-10">
+                                <SelectValue placeholder="Status Setor" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="all">Semua Status</SelectItem>
+                                <SelectItem value="deposited">Sudah Disetor</SelectItem>
+                                <SelectItem value="pending">Belum Disetor</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
                 </div>
 
                 {/* Actions & Summary */}

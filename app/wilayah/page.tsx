@@ -25,6 +25,7 @@ import {
     DialogContent,
     DialogHeader,
     DialogTitle,
+    DialogDescription,
     DialogTrigger,
     DialogFooter,
 } from "@/components/ui/dialog";
@@ -62,12 +63,14 @@ export default function AreasPage() {
     const [editingId, setEditingId] = useState<number | null>(null);
     const [formName, setFormName] = useState("");
     const [formCode, setFormCode] = useState("");
+    const [formTarget, setFormTarget] = useState<number>(0);
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     const handleEditClick = (area: Area) => {
         setEditingId(area.id);
         setFormName(area.name);
         setFormCode(area.code);
+        setFormTarget(area.target || 0);
         setIsDialogOpen(true);
     };
 
@@ -88,23 +91,48 @@ export default function AreasPage() {
     const fetchAreas = async () => {
         setLoading(true);
         try {
-            const { data, error } = await supabase
+            // 1. Fetch areas
+            const { data: areasData, error: areasError } = await supabase
                 .from('areas')
                 .select('*')
                 .order('name', { ascending: true });
 
-            if (error) throw error;
+            if (areasError) throw areasError;
 
-            // Map DB data to UI format (adding default mocks for missing stats to preserve UI)
-            const formattedData = (data || []).map((item: any) => ({
-                id: item.id,
-                name: item.name,
-                code: item.code,
-                totalSr: item.total_sr || 0, // Fallback if column doesn't exist
-                target: item.target || 0,
-                status: "Aktif",
-                activeRate: 0
-            }));
+            // 2. Fetch customer status per area
+            const { data: customerData, error: countsError } = await supabase
+                .from('customers')
+                .select('area_id, status');
+
+            if (countsError) throw countsError;
+
+            // 3. Process counts and active status in JS
+            const areaStatsMap = (customerData || []).reduce((acc: any, curr: any) => {
+                if (!acc[curr.area_id]) {
+                    acc[curr.area_id] = { total: 0, active: 0 };
+                }
+                acc[curr.area_id].total += 1;
+                if (curr.status === 'active') {
+                    acc[curr.area_id].active += 1;
+                }
+                return acc;
+            }, {});
+
+            // Map DB data to UI format
+            const formattedData = (areasData || []).map((item: any) => {
+                const stats = areaStatsMap[item.id] || { total: 0, active: 0 };
+                const activeRate = stats.total > 0 ? Math.round((stats.active / stats.total) * 100) : 0;
+                
+                return {
+                    id: item.id,
+                    name: item.name,
+                    code: item.code,
+                    totalSr: stats.total,
+                    target: item.target || 0,
+                    status: "Aktif",
+                    activeRate: activeRate
+                };
+            });
 
             setAreas(formattedData);
         } catch (error) {
@@ -131,10 +159,18 @@ export default function AreasPage() {
         try {
             let error;
             if (editingId) {
-                const res = await supabase.from('areas').update({ name: formName, code: formCode }).eq('id', editingId);
+                const res = await supabase.from('areas').update({ 
+                    name: formName, 
+                    code: formCode,
+                    target: formTarget 
+                }).eq('id', editingId);
                 error = res.error;
             } else {
-                const res = await supabase.from('areas').insert([{ name: formName, code: formCode }]);
+                const res = await supabase.from('areas').insert([{ 
+                    name: formName, 
+                    code: formCode,
+                    target: formTarget 
+                }]);
                 error = res.error;
             }
 
@@ -181,36 +217,57 @@ export default function AreasPage() {
                         setEditingId(null);
                         setFormName("");
                         setFormCode("");
+                        setFormTarget(0);
                     }
                 }}>
                     <DialogTrigger asChild>
-                        <Button onClick={() => { setEditingId(null); setFormName(""); setFormCode(""); }} className="rounded-full bg-indigo-600 hover:bg-indigo-700 text-white text-xs h-9 px-4 shadow-md shadow-indigo-100 transition-all">
+                        <Button onClick={() => { setEditingId(null); setFormName(""); setFormCode(""); setFormTarget(0); }} className="rounded-full bg-indigo-600 hover:bg-indigo-700 text-white text-xs h-9 px-4 shadow-md shadow-indigo-100 transition-all">
                             <Plus className="mr-2 h-3.5 w-3.5" /> Tambah Wilayah
                         </Button>
                     </DialogTrigger>
                     <DialogContent className="sm:max-w-[425px] rounded-[20px] p-6">
                         <DialogHeader>
                             <DialogTitle>{editingId ? "Edit Wilayah" : "Tambah Wilayah Baru"}</DialogTitle>
+                            <DialogDescription className="text-xs text-slate-500">
+                                {editingId ? "Perbarui informasi nama, kode, dan target untuk wilayah ini." : "Masukkan detail wilayah baru untuk mulai mengelola pelanggan di area tersebut."}
+                            </DialogDescription>
                         </DialogHeader>
                         <form onSubmit={handleSubmit} className="grid gap-4 py-4">
                             <div className="grid gap-2">
                                 <Label htmlFor="name" className="text-xs font-bold text-slate-600">Nama Wilayah</Label>
                                 <Input
                                     id="name"
+                                    name="area-name"
                                     placeholder="Contoh: Dusun I - Krajan"
                                     value={formName}
                                     onChange={(e) => setFormName(e.target.value)}
                                     className="rounded-lg bg-slate-50"
+                                    autoComplete="off"
                                 />
                             </div>
                             <div className="grid gap-2">
                                 <Label htmlFor="code" className="text-xs font-bold text-slate-600">Kode Wilayah</Label>
                                 <Input
                                     id="code"
+                                    name="area-code"
                                     placeholder="Contoh: D-01"
                                     value={formCode}
                                     onChange={(e) => setFormCode(e.target.value)}
                                     className="rounded-lg bg-slate-50"
+                                    autoComplete="off"
+                                />
+                            </div>
+                            <div className="grid gap-2">
+                                <Label htmlFor="target" className="text-xs font-bold text-slate-600">Target Pelanggan (SR)</Label>
+                                <Input
+                                    id="target"
+                                    name="area-target"
+                                    type="number"
+                                    placeholder="Contoh: 100"
+                                    value={formTarget}
+                                    onChange={(e) => setFormTarget(parseInt(e.target.value) || 0)}
+                                    className="rounded-lg bg-slate-50"
+                                    autoComplete="off"
                                 />
                             </div>
                             <DialogFooter className="mt-4">
@@ -228,6 +285,8 @@ export default function AreasPage() {
             <div className="mb-6 relative max-w-sm">
                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
                 <Input
+                    id="area-search"
+                    name="area-search"
                     placeholder="Cari nama wilayah atau kode..."
                     className="pl-10 h-10 rounded-full bg-slate-50 border-0 focus-visible:ring-1 focus-visible:ring-indigo-500 font-medium text-xs placeholder:text-slate-400 w-full"
                     value={searchTerm}
@@ -237,31 +296,33 @@ export default function AreasPage() {
 
             {/* Top Summary Stats */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-                <Card className="bg-slate-50 border-slate-100 rounded-2xl p-4 flex items-center gap-4 shadow-sm">
-                    <div className="h-10 w-10 bg-white rounded-xl flex items-center justify-center text-indigo-600 shadow-sm">
-                        <Map className="h-5 w-5" />
+                <Card className="bg-slate-50/50 border-slate-100/80 rounded-[24px] p-6 flex flex-col items-center text-center shadow-none hover:bg-slate-100/50 transition-all">
+                    <div className="h-12 w-12 bg-white rounded-2xl flex items-center justify-center text-indigo-600 shadow-sm border border-indigo-50 mb-4">
+                        <Map className="h-6 w-6" />
                     </div>
                     <div>
-                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Total Wilayah</p>
-                        {loading ? <Skeleton className="h-6 w-12 mt-1" /> : <p className="text-xl font-bold text-slate-900">{totalWilayah}</p>}
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.1em] mb-1">Total Wilayah</p>
+                        {loading ? <Skeleton className="h-8 w-16 mx-auto" /> : <p className="text-3xl font-black text-slate-900 tracking-tight">{totalWilayah}</p>}
                     </div>
                 </Card>
-                <Card className="bg-slate-50 border-slate-100 rounded-2xl p-4 flex items-center gap-4 shadow-sm">
-                    <div className="h-10 w-10 bg-white rounded-xl flex items-center justify-center text-emerald-600 shadow-sm">
-                        <Users className="h-5 w-5" />
+
+                <Card className="bg-slate-50/50 border-slate-100/80 rounded-[24px] p-6 flex flex-col items-center text-center shadow-none hover:bg-slate-100/50 transition-all">
+                    <div className="h-12 w-12 bg-white rounded-2xl flex items-center justify-center text-emerald-600 shadow-sm border border-emerald-50 mb-4">
+                        <Users className="h-6 w-6" />
                     </div>
                     <div>
-                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Total Pelanggan</p>
-                        {loading ? <Skeleton className="h-6 w-12 mt-1" /> : <p className="text-xl font-bold text-slate-900">{totalPelanggan}</p>}
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.1em] mb-1">Total Pelanggan</p>
+                        {loading ? <Skeleton className="h-8 w-16 mx-auto" /> : <p className="text-3xl font-black text-slate-900 tracking-tight">{totalPelanggan}</p>}
                     </div>
                 </Card>
-                <Card className="bg-slate-50 border-slate-100 rounded-2xl p-4 flex items-center gap-4 shadow-sm">
-                    <div className="h-10 w-10 bg-white rounded-xl flex items-center justify-center text-blue-600 shadow-sm">
-                        <Target className="h-5 w-5" />
+
+                <Card className="bg-slate-50/50 border-slate-100/80 rounded-[24px] p-6 flex flex-col items-center text-center shadow-none hover:bg-slate-100/50 transition-all">
+                    <div className="h-12 w-12 bg-white rounded-2xl flex items-center justify-center text-blue-600 shadow-sm border border-blue-50 mb-4">
+                        <Target className="h-6 w-6" />
                     </div>
                     <div>
-                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Total Target</p>
-                        {loading ? <Skeleton className="h-6 w-12 mt-1" /> : <p className="text-xl font-bold text-slate-900">{totalTarget}</p>}
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.1em] mb-1">Total Target</p>
+                        {loading ? <Skeleton className="h-8 w-16 mx-auto" /> : <p className="text-3xl font-black text-slate-900 tracking-tight">{totalTarget}</p>}
                     </div>
                 </Card>
             </div>

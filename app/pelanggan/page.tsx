@@ -529,69 +529,80 @@ function PelangganPageContent() {
 
                     {/* Filters Row */}
                     <div className="flex flex-wrap items-center gap-2 flex-1">
-                        {/* Area Filter */}
-                        <Select
-                            value={String(selectedAreaId)}
-                            onValueChange={(value) => setSelectedAreaId(value === 'all' ? 'all' : parseInt(value))}
-                        >
-                            <SelectTrigger id="filter-wilayah" name="filter-wilayah" className="h-10 px-4 rounded-full bg-slate-50 border-0 font-medium text-[11px] w-auto min-w-[140px]">
-                                <SelectValue placeholder="Wilayah" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="all" className="text-xs font-medium">Semua Wilayah</SelectItem>
-                                {wilayahList.map((area) => (
-                                    <SelectItem key={area.id} value={area.id.toString()} className="text-xs font-medium">{area.nama_wilayah}</SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
+                        <div className="flex flex-col">
+                            <Label htmlFor="filter-wilayah" className="sr-only">Filter Wilayah</Label>
+                            <Select
+                                name="filter-wilayah"
+                                value={String(selectedAreaId)}
+                                onValueChange={(value) => setSelectedAreaId(value === 'all' ? 'all' : parseInt(value))}
+                            >
+                                <SelectTrigger id="filter-wilayah" className="h-10 px-4 rounded-full bg-slate-50 border-0 font-medium text-[11px] w-auto min-w-[140px]">
+                                    <SelectValue placeholder="Wilayah" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all" className="text-xs font-medium">Semua Wilayah</SelectItem>
+                                    {wilayahList.map((area) => (
+                                        <SelectItem key={area.id} value={area.id.toString()} className="text-xs font-medium">{area.nama_wilayah}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
 
-                        {/* Status Filter */}
-                        <Select value={selectedStatus} onValueChange={setSelectedStatus}>
-                            <SelectTrigger id="filter-status" name="filter-status" className="h-10 px-4 rounded-full bg-slate-50 border-0 font-medium text-[11px] w-auto min-w-[100px]">
-                                <SelectValue placeholder="Status" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="all" className="text-xs font-medium">Semua Status</SelectItem>
-                                <SelectItem value="active" className="text-xs font-medium">Aktif</SelectItem>
-                                <SelectItem value="inactive" className="text-xs font-medium">Non-Aktif</SelectItem>
-                            </SelectContent>
-                        </Select>
+                        <div className="flex flex-col">
+                            <Label htmlFor="filter-status" className="sr-only">Filter Status</Label>
+                            <Select name="filter-status" value={selectedStatus} onValueChange={setSelectedStatus}>
+                                <SelectTrigger id="filter-status" className="h-10 px-4 rounded-full bg-slate-50 border-0 font-medium text-[11px] w-auto min-w-[100px]">
+                                    <SelectValue placeholder="Status" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all" className="text-xs font-medium">Semua Status</SelectItem>
+                                    <SelectItem value="active" className="text-xs font-medium">Aktif</SelectItem>
+                                    <SelectItem value="inactive" className="text-xs font-medium">Non-Aktif</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
 
-                        {/* Installation Filter */}
-                        <Select value={selectedInstallStatus} onValueChange={setSelectedInstallStatus}>
-                            <SelectTrigger id="filter-biaya" name="filter-biaya" className="h-10 px-4 rounded-full bg-slate-50 border-0 font-medium text-[11px] w-auto min-w-[120px]">
-                                <SelectValue placeholder="Biaya Pasang" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="all" className="text-xs font-medium">Semua Biaya</SelectItem>
-                                <SelectItem value="paid" className="text-xs font-medium">Lunas</SelectItem>
-                                <SelectItem value="unpaid" className="text-xs font-medium">Belum Lunas</SelectItem>
-                                <SelectItem value="none" className="text-xs font-medium">Tanpa Biaya</SelectItem>
-                            </SelectContent>
-                        </Select>
+                        <div className="flex flex-col">
+                            <Label htmlFor="filter-biaya" className="sr-only">Filter Biaya Pasang</Label>
+                            <Select name="filter-biaya" value={selectedInstallStatus} onValueChange={setSelectedInstallStatus}>
+                                <SelectTrigger id="filter-biaya" className="h-10 px-4 rounded-full bg-slate-50 border-0 font-medium text-[11px] w-auto min-w-[120px]">
+                                    <SelectValue placeholder="Biaya Pasang" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all" className="text-xs font-medium">Semua Biaya</SelectItem>
+                                    <SelectItem value="paid" className="text-xs font-medium">Lunas</SelectItem>
+                                    <SelectItem value="unpaid" className="text-xs font-medium">Belum Lunas</SelectItem>
+                                    <SelectItem value="none" className="text-xs font-medium">Tanpa Biaya</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
 
-                        {/* Group Filter */}
-                        <Select value={selectedGroup} onValueChange={setSelectedGroup}>
-                            <SelectTrigger id="filter-kelompok" name="filter-kelompok" className="h-10 px-4 rounded-full bg-slate-50 border-0 font-medium text-[11px] w-auto min-w-[110px]">
-                                <SelectValue placeholder="Kelompok" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="all" className="text-xs font-medium">Semua Kelompok</SelectItem>
-                                <SelectItem value="A" className="text-xs font-medium">Kelompok A</SelectItem>
-                                <SelectItem value="B" className="text-xs font-medium">Kelompok B</SelectItem>
-                            </SelectContent>
-                        </Select>
+                        <div className="flex flex-col">
+                            <Label htmlFor="filter-kelompok" className="sr-only">Filter Kelompok</Label>
+                            <Select name="filter-kelompok" value={selectedGroup} onValueChange={setSelectedGroup}>
+                                <SelectTrigger id="filter-kelompok" className="h-10 px-4 rounded-full bg-slate-50 border-0 font-medium text-[11px] w-auto min-w-[110px]">
+                                    <SelectValue placeholder="Kelompok" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all" className="text-xs font-medium">Semua Kelompok</SelectItem>
+                                    <SelectItem value="A" className="text-xs font-medium">Kelompok A</SelectItem>
+                                    <SelectItem value="B" className="text-xs font-medium">Kelompok B</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
 
-                        {/* Sort Order */}
-                        <Select value={sortBy} onValueChange={setSortBy}>
-                            <SelectTrigger id="filter-urutkan" name="filter-urutkan" className="h-10 px-4 rounded-full bg-indigo-50 border-0 font-bold text-[11px] text-indigo-700 w-auto min-w-[140px]">
-                                <SelectValue placeholder="Urutkan" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="name" className="text-xs font-medium">Urut Nama (A-Z)</SelectItem>
-                                <SelectItem value="no_pelanggan" className="text-xs font-medium">Urut No. Pelanggan</SelectItem>
-                            </SelectContent>
-                        </Select>
+                        <div className="flex flex-col">
+                            <Label htmlFor="filter-urutkan" className="sr-only">Urutkan Berdasarkan</Label>
+                            <Select name="filter-urutkan" value={sortBy} onValueChange={setSortBy}>
+                                <SelectTrigger id="filter-urutkan" className="h-10 px-4 rounded-full bg-indigo-50 border-0 font-bold text-[11px] text-indigo-700 w-auto min-w-[140px]">
+                                    <SelectValue placeholder="Urutkan" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="name" className="text-xs font-medium">Urut Nama (A-Z)</SelectItem>
+                                    <SelectItem value="no_pelanggan" className="text-xs font-medium">Urut No. Pelanggan</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -736,11 +747,13 @@ function PelangganPageContent() {
                                 <p className="text-xs text-slate-500">Sisa Tagihan Anda</p>
                                 <p className="text-xl font-bold text-slate-900">{formatCurrency(installationFee.total_amount - installationFee.paid_amount)}</p>
                             </div>
-                            <div className="space-y-2">
-                                <Label>Jumlah Bayar</Label>
+                             <div className="space-y-2">
+                                <Label htmlFor="pay_installment_amount">Jumlah Bayar</Label>
                                 <div className="relative">
                                     <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-sm">Rp</span>
                                     <Input
+                                        id="pay_installment_amount"
+                                        name="pay_installment_amount"
                                         type="number"
                                         placeholder="0"
                                         className="pl-10"
@@ -1297,22 +1310,26 @@ Mohon untuk segera melakukan pelunasan. Terima kasih.`;
                                     <p className="text-xs text-slate-400 font-medium shrink-0">Golongan</p>
                                     <div className="flex items-center gap-2 flex-1 justify-end">
                                         {rates.length > 0 ? (
-                                            <Select
-                                                disabled={isUpdatingRate}
-                                                value={(customer as any).rate_id?.toString() || "1"}
-                                                onValueChange={handleRateChange}
-                                            >
-                                                <SelectTrigger className="h-7 text-xs font-bold bg-slate-50 border-slate-200 rounded-full px-3 focus:ring-indigo-500 w-auto max-w-[160px]">
-                                                    <SelectValue placeholder="Pilih..." />
-                                                </SelectTrigger>
-                                                <SelectContent>
-                                                    {rates.map((r) => (
-                                                        <SelectItem key={r.id} value={r.id.toString()} className="text-xs font-medium">
-                                                            {r.name} ({r.code})
-                                                        </SelectItem>
-                                                    ))}
-                                                </SelectContent>
-                                            </Select>
+                                            <div className="flex flex-col items-end gap-1">
+                                                <Label htmlFor="detail-rate-select" className="sr-only">Ubah Golongan</Label>
+                                                <Select
+                                                    name="detail-rate-select"
+                                                    disabled={isUpdatingRate}
+                                                    value={(customer as any).rate_id?.toString() || "1"}
+                                                    onValueChange={handleRateChange}
+                                                >
+                                                    <SelectTrigger id="detail-rate-select" className="h-7 text-xs font-bold bg-slate-50 border-slate-200 rounded-full px-3 focus:ring-indigo-500 w-auto max-w-[160px]">
+                                                        <SelectValue placeholder="Pilih..." />
+                                                    </SelectTrigger>
+                                                    <SelectContent>
+                                                        {rates.map((r) => (
+                                                            <SelectItem key={r.id} value={r.id.toString()} className="text-xs font-medium">
+                                                                {r.name} ({r.code})
+                                                            </SelectItem>
+                                                        ))}
+                                                    </SelectContent>
+                                                </Select>
+                                            </div>
                                         ) : (
                                             <p className="text-xs font-bold text-slate-700">{(customer as any).kategori || "Standard"}</p>
                                         )}
@@ -1713,6 +1730,9 @@ Mohon untuk segera melakukan pelunasan. Terima kasih.`;
                 <DialogContent className="sm:max-w-[600px] rounded-2xl max-h-[90vh] overflow-y-auto">
                     <DialogHeader>
                         <DialogTitle>{editingRecord ? 'Edit Data Historis' : 'Input Data Lampau (Migrasi Data)'}</DialogTitle>
+                        <DialogDescription className="text-xs text-slate-500">
+                            Gunakan form ini untuk memasukkan data tagihan dari sistem lama atau periode sebelumnya agar terekam dalam riwayat pelanggan.
+                        </DialogDescription>
                     </DialogHeader>
                     <form onSubmit={handleLegacySave} className="space-y-6 py-4">
                         {/* Waktu */}
@@ -1722,9 +1742,9 @@ Mohon untuk segera melakukan pelunasan. Terima kasih.`;
                             </h3>
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <div className="grid gap-2">
-                                    <Label className="text-xs font-bold text-slate-600">Bulan</Label>
-                                    <Select value={legacyMonth} onValueChange={setLegacyMonth} required>
-                                        <SelectTrigger className="rounded-full bg-slate-50 border-slate-200">
+                                    <Label htmlFor="legacy_month" className="text-xs font-bold text-slate-600">Bulan</Label>
+                                    <Select name="legacy_month" value={legacyMonth} onValueChange={setLegacyMonth} required>
+                                        <SelectTrigger id="legacy_month" className="rounded-full bg-slate-50 border-slate-200">
                                             <SelectValue />
                                         </SelectTrigger>
                                         <SelectContent>
@@ -1735,9 +1755,9 @@ Mohon untuk segera melakukan pelunasan. Terima kasih.`;
                                     </Select>
                                 </div>
                                 <div className="grid gap-2">
-                                    <Label className="text-xs font-bold text-slate-600">Tahun</Label>
-                                    <Select value={legacyYear} onValueChange={setLegacyYear} required>
-                                        <SelectTrigger className="rounded-full bg-slate-50 border-slate-200">
+                                    <Label htmlFor="legacy_year" className="text-xs font-bold text-slate-600">Tahun</Label>
+                                    <Select name="legacy_year" value={legacyYear} onValueChange={setLegacyYear} required>
+                                        <SelectTrigger id="legacy_year" className="rounded-full bg-slate-50 border-slate-200">
                                             <SelectValue />
                                         </SelectTrigger>
                                         <SelectContent>
@@ -1757,25 +1777,31 @@ Mohon untuk segera melakukan pelunasan. Terima kasih.`;
                             </h3>
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <div className="grid gap-2">
-                                    <Label className="text-xs font-bold text-slate-600">Meter Awal</Label>
+                                    <Label htmlFor="modal_meter_last" className="text-xs font-bold text-slate-600">Meter Awal</Label>
                                     <Input
+                                        id="modal_meter_last"
+                                        name="modal_meter_last"
                                         type="number"
                                         placeholder="0"
                                         className="rounded-full bg-slate-50 border-slate-200"
                                         value={meterLast}
                                         onChange={(e) => setMeterLast(e.target.value)}
                                         required
+                                        autoComplete="off"
                                     />
                                 </div>
                                 <div className="grid gap-2">
-                                    <Label className="text-xs font-bold text-slate-600">Meter Akhir</Label>
+                                    <Label htmlFor="modal_meter_current" className="text-xs font-bold text-slate-600">Meter Akhir</Label>
                                     <Input
+                                        id="modal_meter_current"
+                                        name="modal_meter_current"
                                         type="number"
                                         placeholder="0"
                                         className="rounded-full bg-slate-50 border-slate-200"
                                         value={meterCurrent}
                                         onChange={(e) => setMeterCurrent(e.target.value)}
                                         required
+                                        autoComplete="off"
                                     />
                                 </div>
                             </div>
@@ -1793,25 +1819,31 @@ Mohon untuk segera melakukan pelunasan. Terima kasih.`;
                             </h3>
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <div className="grid gap-2">
-                                    <Label className="text-xs font-bold text-slate-600">Harga per m³ (Rp)</Label>
+                                    <Label htmlFor="modal_rate_per_m3" className="text-xs font-bold text-slate-600">Harga per m³ (Rp)</Label>
                                     <Input
+                                        id="modal_rate_per_m3"
+                                        name="modal_rate_per_m3"
                                         type="number"
                                         placeholder="0"
                                         className="rounded-full bg-slate-50 border-slate-200"
                                         value={ratePerM3}
                                         onChange={(e) => setRatePerM3(e.target.value)}
                                         required
+                                        autoComplete="off"
                                     />
                                 </div>
                                 <div className="grid gap-2">
-                                    <Label className="text-xs font-bold text-slate-600">Abonemen (Rp)</Label>
+                                    <Label htmlFor="modal_abonemen" className="text-xs font-bold text-slate-600">Abonemen (Rp)</Label>
                                     <Input
+                                        id="modal_abonemen"
+                                        name="modal_abonemen"
                                         type="number"
                                         placeholder="0"
                                         className="rounded-full bg-slate-50 border-slate-200"
                                         value={abonemen}
                                         onChange={(e) => setAbonemen(e.target.value)}
                                         required
+                                        autoComplete="off"
                                     />
                                 </div>
                             </div>
@@ -1828,8 +1860,9 @@ Mohon untuk segera melakukan pelunasan. Terima kasih.`;
                             <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2 pb-2 border-b border-slate-100">
                                 <CheckCircle2 className="h-3.5 w-3.5" /> Status Pembayaran
                             </h3>
-                            <Select value={isPaid} onValueChange={setIsPaid} required>
-                                <SelectTrigger className="rounded-full bg-slate-50 border-slate-200">
+                            <Label htmlFor="legacy_is_paid" className="sr-only">Status Pembayaran</Label>
+                            <Select name="legacy_is_paid" value={isPaid} onValueChange={setIsPaid} required>
+                                <SelectTrigger id="legacy_is_paid" className="rounded-full bg-slate-50 border-slate-200">
                                     <SelectValue />
                                 </SelectTrigger>
                                 <SelectContent>
@@ -1965,8 +1998,10 @@ Mohon untuk segera melakukan pelunasan. Terima kasih.`;
                     <form onSubmit={handleReinstall} className="space-y-6 py-4">
                         <div className="space-y-4">
                             <div className="grid gap-2">
-                                <Label className="text-xs font-bold text-slate-600">Biaya Pasang Baru (Rp)</Label>
+                                <Label htmlFor="reinstall_fee" className="text-xs font-bold text-slate-600">Biaya Pasang Baru (Rp)</Label>
                                 <Input
+                                    id="reinstall_fee"
+                                    name="reinstall_fee"
                                     type="number"
                                     placeholder="0"
                                     className="rounded-full bg-slate-50 border-slate-200"
@@ -1977,9 +2012,9 @@ Mohon untuk segera melakukan pelunasan. Terima kasih.`;
                                 <p className="text-xs text-slate-500">Masukkan 0 jika tidak ada biaya</p>
                             </div>
                             <div className="grid gap-2">
-                                <Label className="text-xs font-bold text-slate-600">Metode Pembayaran</Label>
-                                <Select value={reinstallMethod} onValueChange={(v) => setReinstallMethod(v as 'cash' | 'transfer')}>
-                                    <SelectTrigger className="rounded-full bg-slate-50 border-slate-200">
+                                <Label htmlFor="reinstall_method" className="text-xs font-bold text-slate-600">Metode Pembayaran</Label>
+                                <Select name="reinstall_method" value={reinstallMethod} onValueChange={(v) => setReinstallMethod(v as 'cash' | 'transfer')}>
+                                    <SelectTrigger id="reinstall_method" className="rounded-full bg-slate-50 border-slate-200">
                                         <SelectValue />
                                     </SelectTrigger>
                                     <SelectContent>

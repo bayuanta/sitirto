@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import {
     PieChart,
     Pie,
@@ -13,12 +14,19 @@ import {
     CreditCard,
     User,
     MoreHorizontal,
-    ArrowRight
+    ArrowRight,
+    Loader2
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 
 export function PaymentStatusWidget({ data }: { data: { paid: number, unpaid: number, percentage: number } }) {
+    const [mounted, setMounted] = useState(false);
+    useEffect(() => {
+        const timer = setTimeout(() => setMounted(true), 100);
+        return () => clearTimeout(timer);
+    }, []);
+
     const chartData = [
         { name: "Lunas", value: data?.paid || 0, color: "#6366F1" }, // Indigo-500
         { name: "Menunggak", value: data?.unpaid || 0, color: "#cbd5e1" }, // Slate-300
@@ -26,10 +34,18 @@ export function PaymentStatusWidget({ data }: { data: { paid: number, unpaid: nu
 
     const percentage = data?.percentage || 0;
 
+    if (!mounted) {
+        return (
+            <div className="h-[220px] w-full bg-slate-50/50 rounded-2xl animate-pulse flex items-center justify-center">
+                <Loader2 className="h-6 w-6 animate-spin text-slate-200" />
+            </div>
+        );
+    }
+
     return (
         <div className="flex flex-col">
             <div className="h-[220px] w-full min-w-0 relative">
-                <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={220}>
+                <ResponsiveContainer width="100%" height={220} minWidth={0} minHeight={220}>
                     <PieChart>
                         <Pie
                             data={chartData}

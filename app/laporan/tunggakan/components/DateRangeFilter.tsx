@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Calendar, Loader2, RefreshCcw } from "lucide-react";
+import { Label } from "@/components/ui/label";
 import {
     Select,
     SelectContent,
@@ -65,8 +66,9 @@ export function DateRangeFilter() {
 
             {/* Start Date */}
             <div className="flex items-center gap-2">
-                <Select value={startMonth} onValueChange={setStartMonth}>
-                    <SelectTrigger className="w-[120px] rounded-xl border-slate-200 bg-slate-50 h-9 text-sm">
+                <Label htmlFor="start-month-trigger" className="sr-only">Bulan Mulai</Label>
+                <Select name="start-month" value={startMonth} onValueChange={setStartMonth}>
+                    <SelectTrigger id="start-month-trigger" className="w-[120px] rounded-xl border-slate-200 bg-slate-50 h-9 text-sm">
                         <SelectValue placeholder="Bulan" />
                     </SelectTrigger>
                     <SelectContent>
@@ -75,9 +77,10 @@ export function DateRangeFilter() {
                         ))}
                     </SelectContent>
                 </Select>
-
-                <Select value={startYear} onValueChange={setStartYear}>
-                    <SelectTrigger className="w-[90px] rounded-xl border-slate-200 bg-slate-50 h-9 text-sm">
+ 
+                <Label htmlFor="start-year-trigger" className="sr-only">Tahun Mulai</Label>
+                <Select name="start-year" value={startYear} onValueChange={setStartYear}>
+                    <SelectTrigger id="start-year-trigger" className="w-[90px] rounded-xl border-slate-200 bg-slate-50 h-9 text-sm">
                         <SelectValue placeholder="Tahun" />
                     </SelectTrigger>
                     <SelectContent>
@@ -92,8 +95,9 @@ export function DateRangeFilter() {
 
             {/* End Date */}
             <div className="flex items-center gap-2">
-                <Select value={endMonth} onValueChange={setEndMonth}>
-                    <SelectTrigger className="w-[120px] rounded-xl border-slate-200 bg-slate-50 h-9 text-sm">
+                <Label htmlFor="end-month-trigger" className="sr-only">Bulan Selesai</Label>
+                <Select name="end-month" value={endMonth} onValueChange={setEndMonth}>
+                    <SelectTrigger id="end-month-trigger" className="w-[120px] rounded-xl border-slate-200 bg-slate-50 h-9 text-sm">
                         <SelectValue placeholder="Bulan" />
                     </SelectTrigger>
                     <SelectContent>
@@ -102,9 +106,10 @@ export function DateRangeFilter() {
                         ))}
                     </SelectContent>
                 </Select>
-
-                <Select value={endYear} onValueChange={setEndYear}>
-                    <SelectTrigger className="w-[90px] rounded-xl border-slate-200 bg-slate-50 h-9 text-sm">
+ 
+                <Label htmlFor="end-year-trigger" className="sr-only">Tahun Selesai</Label>
+                <Select name="end-year" value={endYear} onValueChange={setEndYear}>
+                    <SelectTrigger id="end-year-trigger" className="w-[90px] rounded-xl border-slate-200 bg-slate-50 h-9 text-sm">
                         <SelectValue placeholder="Tahun" />
                     </SelectTrigger>
                     <SelectContent>

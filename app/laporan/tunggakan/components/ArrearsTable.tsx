@@ -6,6 +6,7 @@ import { useState, useMemo } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Label } from "@/components/ui/label";
 import {
     Search,
     Download,
@@ -197,8 +198,11 @@ export function ArrearsTable({ data, areas }: ArrearsTableProps) {
                 <div className="flex flex-wrap gap-3">
                     {/* Search */}
                     <div className="relative w-full sm:w-[260px]">
+                        <Label htmlFor="arrears-search" className="sr-only">Cari Tunggakan</Label>
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
                         <Input
+                            id="arrears-search"
+                            name="arrears-search"
                             placeholder="Cari nama atau no. sambung..."
                             className="pl-10 bg-slate-50 border-slate-200 focus:bg-white focus:border-rose-300 transition-all rounded-xl text-sm h-10"
                             value={searchTerm}
@@ -209,33 +213,39 @@ export function ArrearsTable({ data, areas }: ArrearsTableProps) {
                         />
                     </div>
 
-                    {/* Area Filter */}
-                    <Select value={areaFilter} onValueChange={(v) => { setAreaFilter(v); setCurrentPage(1); }}>
-                        <SelectTrigger className="w-[150px] rounded-xl border-slate-200 bg-slate-50 h-10">
-                            <SelectValue placeholder="Wilayah" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="all">Semua Wilayah</SelectItem>
-                            {areas.map(area => (
-                                <SelectItem key={area.id} value={area.id.toString()}>{area.name}</SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
+                    <div className="flex flex-col">
+                        <Label htmlFor="arrears-area-filter" className="sr-only">Filter Wilayah</Label>
+                        <Select name="arrears-area-filter" value={areaFilter} onValueChange={(v) => { setAreaFilter(v); setCurrentPage(1); }}>
+                            <SelectTrigger id="arrears-area-filter" className="w-[150px] rounded-xl border-slate-200 bg-slate-50 h-10">
+                                <SelectValue placeholder="Wilayah" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="all">Semua Wilayah</SelectItem>
+                                {areas.map(area => (
+                                    <SelectItem key={area.id} value={area.id.toString()}>{area.name}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
 
-                    {/* Months Filter */}
-                    <Select value={monthsFilter} onValueChange={(v) => { setMonthsFilter(v); setCurrentPage(1); }}>
-                        <SelectTrigger className="w-[160px] rounded-xl border-slate-200 bg-slate-50 h-10">
-                            <Filter className="w-4 h-4 mr-2 text-slate-400" />
-                            <SelectValue placeholder="Lama Nunggak" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="all">Semua</SelectItem>
-                            <SelectItem value="1">≥ 1 Bulan</SelectItem>
-                            <SelectItem value="3">≥ 3 Bulan</SelectItem>
-                            <SelectItem value="6">≥ 6 Bulan</SelectItem>
-                            <SelectItem value="12">≥ 12 Bulan</SelectItem>
-                        </SelectContent>
-                    </Select>
+                    <div className="flex flex-col">
+                        <Label htmlFor="arrears-months-filter" className="sr-only">Filter Jumlah Bulan</Label>
+                        <Select name="arrears-months-filter" value={monthsFilter} onValueChange={(v) => { setMonthsFilter(v); setCurrentPage(1); }}>
+                            <SelectTrigger id="arrears-months-filter" className="w-[160px] rounded-xl border-slate-200 bg-slate-50 h-10">
+                                <div className="flex items-center">
+                                    <Filter className="w-4 h-4 mr-2 text-slate-400" />
+                                    <SelectValue placeholder="Lama Nunggak" />
+                                </div>
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="all">Semua</SelectItem>
+                                <SelectItem value="1">≥ 1 Bulan</SelectItem>
+                                <SelectItem value="3">≥ 3 Bulan</SelectItem>
+                                <SelectItem value="6">≥ 6 Bulan</SelectItem>
+                                <SelectItem value="12">≥ 12 Bulan</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
                 </div>
 
                 {/* Summary & Actions */}

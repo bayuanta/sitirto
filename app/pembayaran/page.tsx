@@ -19,6 +19,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
+import { Label } from "@/components/ui/label";
 // import { useToast } from "@/hooks/use-toast"; // Disabling broken import
 import { cn } from "@/lib/utils";
 import { searchCustomers, getUnpaidBills, processPayment, getTodayStats, getAreas } from './actions';
@@ -301,8 +302,11 @@ export default function PembayaranPage() {
                         <div className="bg-white rounded-2xl shadow-sm border border-slate-100 flex flex-col h-full overflow-hidden animate-in fade-in slide-in-from-left-4 duration-300">
                             {/* SEARCH HEADER */}
                             <div className="p-3 border-b border-slate-100 flex items-center gap-3">
+                                <Label htmlFor="pembayaran-search" className="sr-only">Cari Pelanggan</Label>
                                 <Search className="w-5 h-5 text-slate-400" />
                                 <input
+                                    id="pembayaran-search"
+                                    name="pembayaran-search"
                                     type="text"
                                     placeholder="Cari pelanggan..."
                                     className="flex-1 h-9 text-base font-medium outline-none text-slate-700 placeholder:text-slate-300"
@@ -321,7 +325,10 @@ export default function PembayaranPage() {
                             {areas.length > 0 && (
                                 <div className="px-3 py-2 border-b border-slate-50">
                                     <div className="relative">
+                                        <Label htmlFor="pembayaran-wilayah-filter" className="sr-only">Filter Wilayah</Label>
                                         <select
+                                            id="pembayaran-wilayah-filter"
+                                            name="pembayaran-wilayah-filter"
                                             value={selectedArea}
                                             onChange={(e) => {
                                                 const val = e.target.value;
@@ -647,9 +654,9 @@ export default function PembayaranPage() {
                                     {/* CASH INPUT */}
                                     <div className="bg-slate-50 p-3 rounded-2xl border border-slate-200/60 shadow-inner">
                                         <div className="flex items-center justify-between mb-2">
-                                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                                            <Label htmlFor="payment_cash_amount" className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
                                                 Jumlah {method === 'cash' ? 'Uang Tunai' : 'Transfer'}
-                                            </label>
+                                            </Label>
                                             <button
                                                 type="button"
                                                 onClick={() => setCashAmount(remainingToPay.toString())}
@@ -661,11 +668,14 @@ export default function PembayaranPage() {
                                         <div className="relative">
                                             <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-lg">Rp</span>
                                             <Input
+                                                id="payment_cash_amount"
+                                                name="payment_cash_amount"
                                                 type="number"
                                                 value={cashAmount}
                                                 onChange={(e) => setCashAmount(e.target.value)}
                                                 placeholder="0"
                                                 className="h-12 pl-10 text-xl font-black text-slate-900 bg-white border-0 focus:ring-2 focus:ring-indigo-500 rounded-xl shadow-sm"
+                                                autoComplete="off"
                                             />
                                         </div>
 

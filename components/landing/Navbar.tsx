@@ -41,6 +41,7 @@ export function Navbar() {
                         alt="PAMSIMAS Logo"
                         fill
                         className="object-contain object-left"
+                        sizes="(max-width: 768px) 65px, 85px"
                     />
                 </div>
                 <span

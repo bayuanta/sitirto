@@ -23,6 +23,7 @@ import {
     DialogContent,
     DialogHeader,
     DialogTitle,
+    DialogDescription,
     DialogTrigger,
     DialogFooter,
 } from "@/components/ui/dialog";
@@ -247,24 +248,27 @@ export default function RatesPage() {
                 <DialogContent className="sm:max-w-[425px] rounded-[20px] p-6">
                     <DialogHeader>
                         <DialogTitle>{isEditMode ? "Edit Tarif" : "Tambah Golongan Baru"}</DialogTitle>
+                        <DialogDescription className="text-xs text-slate-500">
+                            {isEditMode ? "Perbarui detail tarif air dan biaya pemeliharaan untuk golongan ini." : "Buat golongan tarif baru dengan menentukan harga air per meter kubik dan biaya beban."}
+                        </DialogDescription>
                     </DialogHeader>
                     <form onSubmit={handleSubmit} className="grid gap-4 py-4" key={selectedRate?.id || "new"}>
                         <div className="grid gap-2">
                             <Label htmlFor="name" className="text-xs font-bold text-slate-600">Nama Golongan</Label>
-                            <Input id="name" name="name" defaultValue={selectedRate?.name} placeholder="Contoh: Rumah Tangga" className="rounded-lg bg-slate-50" required />
+                            <Input id="name" name="name" defaultValue={selectedRate?.name} placeholder="Contoh: Rumah Tangga" className="rounded-lg bg-slate-50" required autoComplete="off" />
                         </div>
                         <div className="grid gap-2">
                             <Label htmlFor="code" className="text-xs font-bold text-slate-600">Kode (Unik)</Label>
-                            <Input id="code" name="code" defaultValue={selectedRate?.code} placeholder="Contoh: R1" className="rounded-lg bg-slate-50" required disabled={isEditMode} />
+                            <Input id="code" name="code" defaultValue={selectedRate?.code} placeholder="Contoh: R1" className="rounded-lg bg-slate-50" required disabled={isEditMode} autoComplete="off" />
                         </div>
                         <div className="grid grid-cols-2 gap-4">
                             <div className="grid gap-2">
                                 <Label htmlFor="flat_rate" className="text-xs font-bold text-slate-600">Tarif Air / m³</Label>
-                                <Input id="flat_rate" name="flat_rate" type="number" defaultValue={selectedRate?.flat_rate} placeholder="0" className="rounded-lg bg-slate-50" required />
+                                <Input id="flat_rate" name="flat_rate" type="number" defaultValue={selectedRate?.flat_rate} placeholder="0" className="rounded-lg bg-slate-50" required autoComplete="off" />
                             </div>
                             <div className="grid gap-2">
                                 <Label htmlFor="maintenance_fee" className="text-xs font-bold text-slate-600">Biaya Pemeliharaan</Label>
-                                <Input id="maintenance_fee" name="maintenance_fee" type="number" defaultValue={selectedRate?.maintenance_fee} placeholder="0" className="rounded-lg bg-slate-50" required />
+                                <Input id="maintenance_fee" name="maintenance_fee" type="number" defaultValue={selectedRate?.maintenance_fee} placeholder="0" className="rounded-lg bg-slate-50" required autoComplete="off" />
                             </div>
                         </div>
 
@@ -282,6 +286,7 @@ export default function RatesPage() {
                                     defaultValue={selectedRate?.effective_from ? new Date(selectedRate.effective_from).toISOString().split('T')[0] : new Date().toISOString().split('T')[0]}
                                     className="rounded-lg bg-slate-50"
                                     required
+                                    autoComplete="off"
                                 />
                             </div>
                             <div className="grid gap-2">
@@ -295,6 +300,7 @@ export default function RatesPage() {
                                     className="rounded-lg bg-slate-50"
                                     defaultValue={selectedRate?.effective_to ? new Date(selectedRate.effective_to).toISOString().split('T')[0] : ""}
                                     placeholder="Opsional"
+                                    autoComplete="off"
                                 />
                             </div>
                         </div>
@@ -335,6 +341,9 @@ export default function RatesPage() {
                                     <span className="block text-xs text-slate-500 font-medium mt-0.5">Log perubahan harga & golongan</span>
                                 </div>
                             </DialogTitle>
+                            <DialogDescription className="sr-only">
+                                Menampilkan daftar perubahan tarif dan biaya pemeliharaan dari waktu ke waktu untuk golongan yang dipilih.
+                            </DialogDescription>
                         </DialogHeader>
 
                         <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-2 custom-scrollbar">
