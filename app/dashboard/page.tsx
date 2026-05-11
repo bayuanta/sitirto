@@ -21,9 +21,9 @@ import {
 import {
     RevenueTrendChartClient,
     PaymentStatusWidgetClient,
-    PaymentMethodChartClient
+    PaymentMethodChartClient,
+    PaymentStatisticsChartClient
 } from "@/components/dashboard/client-charts-wrapper";
-import { PaymentStatisticsChart } from "@/components/dashboard/payment-statistics-chart";
 import { QuickActionsWidget } from "@/components/dashboard/quick-actions-widget";
 
 export const revalidate = 0;
@@ -170,7 +170,7 @@ export default async function DashboardPage() {
 
                 {/* 2.5 BARIS TENGAH BARU: Payment Statistics Chart (Full Width in Main Column) */}
                 <section>
-                    <PaymentStatisticsChart
+                    <PaymentStatisticsChartClient
                         initialData={paymentStatistics.monthly}
                         initialSummary={paymentStatistics.summary}
                         currentYear={new Date().getFullYear()}

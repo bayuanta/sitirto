@@ -58,3 +58,15 @@ export const PaymentMethodChartClient = dynamic(
         )
     }
 );
+
+export const PaymentStatisticsChartClient = dynamic(
+    () => import('@/components/dashboard/payment-statistics-chart').then((mod) => mod.PaymentStatisticsChart),
+    {
+        ssr: false,
+        loading: () => (
+            <div className="h-[400px] w-full bg-slate-50/50 rounded-2xl animate-pulse flex items-center justify-center">
+                <p className="text-xs text-slate-400">Memuat Statistik...</p>
+            </div>
+        )
+    }
+);
