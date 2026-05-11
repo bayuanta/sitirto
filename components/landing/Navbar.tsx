@@ -40,7 +40,7 @@ export function Navbar() {
                         src="/acuasafe/images/pamsimas-logo.png"
                         alt="PAMSIMAS Logo"
                         fill
-                        className="object-contain object-left"
+                        style={{ objectFit: 'contain', objectPosition: 'left' }}
                         sizes="(max-width: 768px) 65px, 85px"
                     />
                 </div>

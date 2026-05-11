@@ -6,6 +6,7 @@ import {
     Droplets,
     Coins,
     Wallet,
+    Hammer,
     MoreHorizontal
 } from "lucide-react";
 import {
@@ -257,6 +258,22 @@ export default async function DashboardPage() {
                 <Card className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 hover:shadow-md transition-all duration-300">
                     <h3 className="text-base font-black text-slate-900 mb-4">Status Pembayaran</h3>
                     <PaymentStatusWidgetClient data={paymentStats} />
+                </Card>
+
+                {/* Widget 1b: Tunggakan Biaya Pasang */}
+                <Card className="bg-white rounded-2xl shadow-sm border border-slate-100 p-5 hover:shadow-md transition-all duration-300">
+                    <div className="flex items-center gap-3 mb-4">
+                        <div className="p-2 bg-amber-50 rounded-lg text-amber-600">
+                            <Hammer className="h-4 w-4" />
+                        </div>
+                        <h3 className="text-sm font-black text-slate-900">Tunggakan Pasang Baru</h3>
+                    </div>
+                    <div className="flex items-baseline justify-between">
+                        <h4 className="text-xl font-black text-slate-900">{formatCurrency(stats.installationArrears)}</h4>
+                        <Badge variant="outline" className="bg-amber-50 text-amber-600 border-amber-200 font-bold text-[10px]">
+                            Hutang SR
+                        </Badge>
+                    </div>
                 </Card>
 
                 {/* Widget 2: Jadwal Operasional */}

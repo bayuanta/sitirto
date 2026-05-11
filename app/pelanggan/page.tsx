@@ -69,6 +69,7 @@ import {
     Trash2,
     ChevronLeft,
     ChevronRight,
+    ChevronDown,
     User,
     Wallet,
     Hammer,
@@ -801,6 +802,29 @@ function CustomerDrawerContent({ customer, onPayInstallment, formatCurrency, onE
     const [customerDetails, setCustomerDetails] = useState<CustomerDetails | null>(null);
     const [loadingDetails, setLoadingDetails] = useState(true);
 
+    // Grouping State for Bills
+    const [expandedYears, setExpandedYears] = useState<Record<number, boolean>>({});
+
+    // Group bills by year
+    const groupedBills = useMemo(() => {
+        if (!customerDetails?.bills) return {};
+        const groups: Record<number, any[]> = {};
+        customerDetails.bills.forEach(bill => {
+            if (!groups[bill.year]) groups[bill.year] = [];
+            groups[bill.year].push(bill);
+        });
+        return groups;
+    }, [customerDetails?.bills]);
+
+    const years = useMemo(() => Object.keys(groupedBills).map(Number).sort((a, b) => b - a), [groupedBills]);
+
+    // Auto-expand the most recent year on load
+    useEffect(() => {
+        if (years.length > 0 && Object.keys(expandedYears).length === 0) {
+            setExpandedYears({ [years[0]]: true });
+        }
+    }, [years, expandedYears]);
+
     // Rate Edit State
     const [rates, setRates] = useState<{ id: number, name: string, code: string }[]>([]);
     const [isUpdatingRate, setIsUpdatingRate] = useState(false);
@@ -1433,11 +1457,42 @@ Mohon untuk segera melakukan pelunasan. Terima kasih.`;
                                         </Button>
                                     </div>
                                 )}
-                                <div className="bg-white rounded-[20px] border border-slate-200 overflow-hidden">
-                                {customerDetails.bills.map((bill) => (
-                                    <div
-                                        key={bill.id}
-                                        className={cn(
+                                <div className="space-y-4">
+                                    {years.map(year => {
+                                        const isExpanded = expandedYears[year];
+                                        const yearBills = groupedBills[year];
+                                        const yearTotal = yearBills.reduce((sum, b) => sum + (b.status !== 'paid' ? b.remaining : 0), 0);
+
+                                        return (
+                                            <div key={year} className="bg-white rounded-[20px] border border-slate-200 overflow-hidden shadow-sm">
+                                                <button
+                                                    onClick={() => setExpandedYears(prev => ({ ...prev, [year]: !prev[year] }))}
+                                                    className="w-full flex items-center justify-between p-4 bg-slate-50/80 hover:bg-slate-100 transition-colors"
+                                                >
+                                                    <div className="flex items-center gap-3">
+                                                        <span className="font-black text-slate-800 text-lg">{year}</span>
+                                                        <Badge variant="outline" className="text-[10px] bg-white text-slate-500 font-bold border-slate-200">
+                                                            {yearBills.length} Tagihan
+                                                        </Badge>
+                                                    </div>
+                                                    <div className="flex items-center gap-3">
+                                                        {yearTotal > 0 && (
+                                                            <span className="text-[10px] font-bold text-rose-600 bg-rose-50 px-2 py-1 rounded-md border border-rose-100">
+                                                                Tunggakan: {formatCurrency(yearTotal)}
+                                                            </span>
+                                                        )}
+                                                        <div className={cn("h-6 w-6 rounded-full bg-white border border-slate-200 flex items-center justify-center transition-transform", isExpanded && "rotate-180")}>
+                                                            <ChevronDown className="h-4 w-4 text-slate-500" />
+                                                        </div>
+                                                    </div>
+                                                </button>
+                                                
+                                                {isExpanded && (
+                                                    <div className="border-t border-slate-100 divide-y divide-slate-50">
+                                                        {yearBills.map((bill) => (
+                                                            <div
+                                                                key={bill.id}
+                                                                className={cn(
                                             "flex items-center justify-between p-4 border-b border-slate-50 last:border-0 hover:bg-slate-50 transition-colors group",
                                             bill.status === 'partial' && "bg-amber-50/30 hover:bg-amber-50/50"
                                         )}
@@ -1505,8 +1560,13 @@ Mohon untuk segera melakukan pelunasan. Terima kasih.`;
                                                 </DropdownMenuContent>
                                             </DropdownMenu>
                                         </div>
-                                    </div>
-                                ))}
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        );
+                                    })}
                                 </div>
                             </div>
                         )}

@@ -11,6 +11,7 @@ export type DashboardData = {
         recordedCount: number;
         targetPercentage: number;
         targetPeriodName: string;
+        installationArrears: number;
     };
     revenue: {
         daily: number;
@@ -57,7 +58,8 @@ export async function getUnifiedDashboardData(year: number = new Date().getFullY
         const [
             { count: activeCustomersCount },
             { data: transactions },
-            { data: allMeterRecords }
+            { data: allMeterRecords },
+            { data: installationFees }
         ] = await Promise.all([
             // Q1: Active Customers Count
             supabase.from("customers").select("*", { count: "exact", head: true }).eq("status", "active"),
@@ -78,7 +80,13 @@ export async function getUnifiedDashboardData(year: number = new Date().getFullY
                     customer:customers!inner(id, name, status, area:areas(name))
                 `)
                 .or(`year.eq.${year},status.neq.paid`)
+                .eq("customers.status", "active"),
+
+            // Q4: Installation Fees (Unpaid)
+            supabase.from("installation_fees")
+                .select(`total_amount, paid_amount, customers!inner(status)`)
                 .eq("customers.status", "active")
+                .neq("status", "paid")
         ]);
 
         const activeCustomers = activeCustomersCount || 0;
@@ -116,9 +124,16 @@ export async function getUnifiedDashboardData(year: number = new Date().getFullY
             // Usage & Record Count for Target Month
             if (r.month === targetMonth && r.year === targetYear) {
                 totalUsage += (r.meter_current - r.meter_last);
-                recordedCount++;
             }
         });
+
+        // --- 1b. INSTALLATION ARREARS ---
+        let installationArrears = 0;
+        if (installationFees) {
+            installationFees.forEach((f: any) => {
+                installationArrears += (f.total_amount - f.paid_amount);
+            });
+        }
 
         // --- 2. REVENUE & TRENDS (From Transactions) ---
         let dailyRev = 0;
@@ -199,7 +214,8 @@ export async function getUnifiedDashboardData(year: number = new Date().getFullY
                 totalUsage,
                 recordedCount,
                 targetPercentage: activeCustomers ? Math.round((recordedCount / activeCustomers) * 100) : 0,
-                targetPeriodName
+                targetPeriodName,
+                installationArrears
             },
             revenue: { daily: dailyRev, monthly: monthlyRev, yearly: yearlyRev },
             trend,

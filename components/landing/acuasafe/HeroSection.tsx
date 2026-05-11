@@ -72,6 +72,7 @@ export function HeroSection() {
                                     alt="Water Splash"
                                     width={1000}
                                     height={600}
+                                    style={{ width: 'auto', height: 'auto' }}
                                     className="object-contain"
                                     priority
                                 />
@@ -95,6 +96,7 @@ export function HeroSection() {
                                     alt="PAMSIMAS Logo"
                                     width={650}
                                     height={288}
+                                    style={{ width: 'auto', height: 'auto' }}
                                     className="object-contain"
                                     priority
                                 />
@@ -155,7 +157,7 @@ export function HeroSection() {
                         src="/acuasafe/images/banner/vector-2.png"
                         alt="Water Splash"
                         fill
-                        className="object-contain"
+                        style={{ objectFit: 'contain' }}
                         sizes="(max-width: 768px) 100vw, 500px"
                     />
                 </div>

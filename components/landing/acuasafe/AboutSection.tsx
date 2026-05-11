@@ -25,7 +25,7 @@ export function AboutSection() {
                                         src="/acuasafe/images/resource/about-1.png"
                                         alt="About PAMSIMAS"
                                         fill
-                                        className="object-contain"
+                                        style={{ objectFit: 'contain' }}
                                         sizes="(max-width: 768px) 100vw, 570px"
                                         priority
                                     />
