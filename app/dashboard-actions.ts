@@ -1,6 +1,6 @@
 "use server";
 
-import { supabase } from "@/lib/supabase";
+import { createClient } from "@/lib/supabase/server";
 
 // areas (id, name)
 export type DashboardData = {
@@ -53,6 +53,8 @@ export async function getUnifiedDashboardData(year: number = new Date().getFullY
         const monthsNames = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
         const monthsShort = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agt", "Sep", "Okt", "Nov", "Des"];
         const targetPeriodName = `${monthsNames[targetMonth - 1]} ${targetYear}`;
+
+        const supabase = await createClient();
 
         // RUN QUERIES IN PARALLEL
         const [
@@ -124,6 +126,7 @@ export async function getUnifiedDashboardData(year: number = new Date().getFullY
             // Usage & Record Count for Target Month
             if (r.month === targetMonth && r.year === targetYear) {
                 totalUsage += (r.meter_current - r.meter_last);
+                recordedCount++;
             }
         });
 
@@ -256,6 +259,7 @@ export async function getUnifiedDashboardData(year: number = new Date().getFullY
 
 export async function getDashboardStats() {
     try {
+        const supabase = await createClient();
         // 1. Active Customers
         const { count: activeCustomers } = await supabase
             .from("customers")
@@ -340,6 +344,7 @@ export async function getDashboardStats() {
 
 export async function getPeriodRevenueStats() {
     // We use the `transactions` table for revenue stats as it tracks actual money IN.
+    const supabase = await createClient();
     const today = new Date();
     // const startOfDay = new Date(today.setHours(0,0,0,0)).toISOString();
     // const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1).toISOString();
@@ -375,6 +380,7 @@ export async function getPeriodRevenueStats() {
 
 export async function getRevenueTrend() {
     // Last 6 months revenue trend based on Transactions
+    const supabase = await createClient();
     const { data: txs } = await supabase
         .from("transactions")
         .select("total_amount, created_at")
@@ -416,6 +422,7 @@ export async function getTopDebtors() {
     // We need to sum up arrears per customer
 
     // Fetch all unpaid bills with customer info
+    const supabase = await createClient();
     const { data, error } = await supabase
         .from("meter_records")
         .select(`
@@ -453,6 +460,7 @@ export async function getTopDebtors() {
 
 export async function getPaymentMethods() {
     // From transactions table
+    const supabase = await createClient();
     const { data } = await supabase.from("transactions").select("method");
 
     if (!data || data.length === 0) {
@@ -479,6 +487,7 @@ export async function getPaymentMethods() {
 export async function getRecentActivity() {
     // Fetch recent transaction logs + maybe generic logs if we had them.
     // For now, fetch transactions as activity.
+    const supabase = await createClient();
     const { data, error } = await supabase
         .from("transactions")
         .select(`
@@ -500,6 +509,7 @@ export async function getRecentActivity() {
 }
 
 export async function getPaymentStatusStats() {
+    const supabase = await createClient();
     const date = new Date();
     const currentYear = date.getFullYear();
 
@@ -540,6 +550,7 @@ export async function getPaymentStatusStats() {
 
 export async function getPaymentStatistics(year: number) {
     // Fetch all meter records for the selected year (Includes Legacy)
+    const supabase = await createClient();
     const { data: records, error } = await supabase
         .from("meter_records")
         .select("month, bill_amount, paid_amount, status, customers!inner(status)")

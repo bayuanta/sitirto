@@ -76,7 +76,7 @@ export function ArrearsTable({ data, areas }: ArrearsTableProps) {
     const [currentPage, setCurrentPage] = useState(1);
     const [expandedRows, setExpandedRows] = useState<Set<number>>(new Set());
     const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
-    const itemsPerPage = 10;
+    const itemsPerPage = 30;
 
     const months = [
         "Jan", "Feb", "Mar", "Apr", "Mei", "Jun",
