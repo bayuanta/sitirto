@@ -2,12 +2,10 @@ import type { Metadata } from "next";
 import { Plus_Jakarta_Sans } from "next/font/google"; // Removed Dancing_Script
 import localFont from "next/font/local";
 import "./globals.css";
-// import { Sidebar } from "@/components/layout/sidebar"; // Removed: Managed by AppShell
-import { AppShell } from "@/components/layout/app-shell"; // Added: New Layout Manager
-// import { Header } from "@/components/layout/header"; // Removed: Managed by AppShell
-// import { Footer } from "@/components/layout/footer"; // Footer logic can be inside AppShell if needed
+import { AppShell } from "@/components/layout/app-shell"; 
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 
 // Font Configuration
 const fontHeading = Plus_Jakarta_Sans({
@@ -56,6 +54,7 @@ export default function RootLayout({
             {children}
           </AppShell>
           <Toaster />
+          <SpeedInsights />
         </TooltipProvider>
       </body>
     </html>
