@@ -6,6 +6,7 @@ import { AppShell } from "@/components/layout/app-shell";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { SpeedInsights } from "@vercel/speed-insights/next";
+import { Analytics } from "@vercel/analytics/react";
 
 // Font Configuration
 const fontHeading = Plus_Jakarta_Sans({
@@ -55,6 +56,7 @@ export default function RootLayout({
           </AppShell>
           <Toaster />
           <SpeedInsights />
+          <Analytics />
         </TooltipProvider>
       </body>
     </html>
