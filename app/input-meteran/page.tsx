@@ -23,7 +23,8 @@ import {
     Camera,
     AlertTriangle,
     Droplets,
-    CheckCircle2
+    CheckCircle2,
+    Printer
 } from "lucide-react";
 import * as htmlToImage from 'html-to-image';
 import { TagihanImageExport } from "@/components/TagihanImageExport";
@@ -573,14 +574,24 @@ export default function InputMeteranPage() {
                         </div>
                     </div>
 
-                    <Button 
-                        onClick={handleExportImage}
-                        disabled={isExporting || customers.filter(c => c.is_saved).length === 0}
-                        className="w-full md:w-auto h-11 md:h-10 px-6 rounded-xl md:rounded-full bg-indigo-50 text-indigo-700 hover:bg-indigo-100 border border-indigo-100 font-black text-xs gap-2 shadow-sm"
-                    >
-                        {isExporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Share2 className="h-4 w-4" />}
-                        BAGIKAN TAGIHAN KEL. {selectedGroup}
-                    </Button>
+                    <div className="flex flex-col sm:flex-row gap-2 w-full md:w-auto">
+                        <Button 
+                            onClick={() => window.open(`/print-form-meteran?group=${selectedGroup}&area=${selectedArea}&month=${selectedMonth}&year=${selectedYear}`, '_blank')}
+                            variant="outline"
+                            className="w-full sm:w-auto h-11 md:h-10 px-6 rounded-xl md:rounded-full font-black text-xs gap-2 shadow-sm border-slate-200 hover:bg-slate-50"
+                        >
+                            <Printer className="h-4 w-4" />
+                            CETAK FORM KOSONG
+                        </Button>
+                        <Button 
+                            onClick={handleExportImage}
+                            disabled={isExporting || customers.filter(c => c.is_saved).length === 0}
+                            className="w-full sm:w-auto h-11 md:h-10 px-6 rounded-xl md:rounded-full bg-indigo-50 text-indigo-700 hover:bg-indigo-100 border border-indigo-100 font-black text-xs gap-2 shadow-sm"
+                        >
+                            {isExporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Share2 className="h-4 w-4" />}
+                            BAGIKAN TAGIHAN KEL. {selectedGroup}
+                        </Button>
+                    </div>
                 </div>
 
                 {/* --- RESPONSIVE TOOLBAR --- */}
@@ -938,6 +949,8 @@ export default function InputMeteranPage() {
                             <div className="relative mt-2">
                                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3 w-3 text-slate-400" />
                                 <Input 
+                                    id="route-search"
+                                    name="route-search"
                                     placeholder="Cari pelanggan di rute ini..." 
                                     value={routeSearchTerm}
                                     onChange={(e) => setRouteSearchTerm(e.target.value)}
