@@ -211,116 +211,20 @@ export async function processPayment(
     try {
         const supabase = await createClient();
 
-        // 1. Fetch Fresh Data (Bills & Credit) to ensure consistency
-        const { data: customer, error: custError } = await supabase
-            .from("customers")
-            .select("credit_balance")
-            .eq("id", customerId)
-            .single();
+        // Call the Database Transaction Function (RPC)
+        const { data, error: rpcError } = await supabase.rpc('process_bulk_payment', {
+            p_customer_id: customerId,
+            p_bill_ids: selectedBillIds,
+            p_payment_amount: paymentAmount,
+            p_method: method,
+            p_notes: notes,
+            p_use_credit: useCredit
+        });
 
-        if (custError || !customer) throw new Error("Pelanggan tidak ditemukan");
-
-        // Get only selected bills, ordered FIFO
-        const { data: billsData, error: billsError } = await supabase
-            .from("meter_records")
-            .select("*")
-            .in("id", selectedBillIds)
-            .order("year", { ascending: true })
-            .order("month", { ascending: true });
-
-        if (billsError) throw billsError;
-
-        const bills = (billsData || []).map((bill: any) => ({
-            id: bill.id,
-            month: bill.month,
-            year: bill.year,
-            bill_amount: bill.bill_amount,
-            paid_amount: bill.paid_amount || 0,
-            remaining: bill.bill_amount - (bill.paid_amount || 0),
-            status: bill.status
-        }));
-
-        // 2. Calculate Funds
-        const currentCredit = customer.credit_balance || 0;
-        const fundsFromUser = paymentAmount;
-        const fundsFromCredit = useCredit ? currentCredit : 0;
-
-        let availableFunds = fundsFromUser + fundsFromCredit;
-        let remainingFunds = availableFunds;
-
-        const allocationDetails: any[] = [];
-
-        // 3. FIFO Allocation Loop
-        for (const bill of bills) {
-            if (remainingFunds <= 0) break;
-
-            const billRemaining = bill.remaining;
-            let payForThisBill = 0;
-            let newStatus = 'paid';
-
-            if (remainingFunds >= billRemaining) {
-                payForThisBill = billRemaining;
-                remainingFunds -= billRemaining;
-                newStatus = 'paid';
-            } else {
-                payForThisBill = remainingFunds;
-                remainingFunds = 0;
-                newStatus = 'partial';
-            }
-
-            // EXECUTE UPDATE IMMEDIATELY FOR THIS BILL
-            const { error: billError } = await supabase
-                .from("meter_records")
-                .update({
-                    paid_amount: bill.paid_amount + payForThisBill,
-                    status: newStatus
-                })
-                .eq("id", bill.id);
-            
-            if (billError) throw billError;
-
-            allocationDetails.push({
-                bill_id: bill.id,
-                month: bill.month,
-                year: bill.year,
-                amount: payForThisBill
-            });
+        if (rpcError) {
+            console.error("RPC Error:", rpcError);
+            throw new Error(rpcError.message);
         }
-
-        // 4. Calculate Final Credit
-        let finalCreditBalance = currentCredit;
-        if (useCredit) {
-            finalCreditBalance = remainingFunds; 
-        } else {
-            finalCreditBalance = currentCredit + remainingFunds;
-        }
-
-        // 5. EXECUTE DATABASE UPDATES (Bulk Optimized)
-        
-        // B. Update Customer Credit
-        const { error: creditError } = await supabase
-            .from("customers")
-            .update({ credit_balance: finalCreditBalance })
-            .eq("id", customerId);
-
-        if (creditError) throw creditError;
-
-        // C. Insert Transaction Log
-        const { data: txData, error: txError } = await supabase
-            .from("transactions")
-            .insert({
-                customer_id: customerId,
-                total_amount: fundsFromUser, // Only what user paid NOW
-                allocation_details: JSON.stringify(allocationDetails),
-                applied_credit: useCredit ? currentCredit : 0,
-                new_credit: finalCreditBalance,
-                method: method,
-                notes: notes
-            })
-            .select("id")
-            .single();
-
-        if (txError) throw txError;
 
         revalidatePath("/pembayaran");
         revalidatePath("/pelanggan");
@@ -329,9 +233,9 @@ export async function processPayment(
 
         return {
             success: true,
-            allocated: allocationDetails.length,
-            newCredit: finalCreditBalance,
-            txId: txData?.id
+            allocated: data.allocated,
+            newCredit: data.newCredit,
+            txId: data.txId
         };
 
     } catch (err: any) {
