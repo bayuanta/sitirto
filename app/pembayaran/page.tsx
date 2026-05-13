@@ -312,7 +312,6 @@ export default function PembayaranPage() {
                                     className="flex-1 h-9 text-base font-medium outline-none text-slate-700 placeholder:text-slate-300"
                                     value={searchTerm}
                                     onChange={(e) => setSearchTerm(e.target.value)}
-                                    autoFocus
                                 />
                                 {searchTerm && (
                                     <button onClick={() => setSearchTerm('')} className="p-1 hover:bg-slate-100 rounded-full text-slate-400">
