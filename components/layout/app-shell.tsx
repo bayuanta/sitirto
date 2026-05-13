@@ -18,7 +18,7 @@ export function AppShell({ children }: AppShellProps) {
     const pathname = usePathname();
 
     // Check if current page is public (login or landing page) or print view - skip layout
-    const isPublicPage = pathname === "/login" || pathname === "/" || pathname.startsWith("/print");
+    const isPublicPage = pathname === "/login" || pathname === "/" || pathname === "/cek" || pathname.startsWith("/print");
 
     // Handle responsive behavior
     useEffect(() => {
