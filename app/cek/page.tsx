@@ -427,7 +427,6 @@ export default function MobileCekTagihan() {
                         </Link>
                     </motion.div>
                 )}
-            </main>>
             </main>
 
             {/* Sticky Bottom Total & Action */}
