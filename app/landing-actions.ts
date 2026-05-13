@@ -67,8 +67,8 @@ export async function checkBill(connectionNumber: string): Promise<{ success: bo
             .select("id, month, year, usage, paid_amount, updated_at")
             .eq("customer_id", customer.id)
             .eq("status", "paid")
-            .order("year", { descending: true })
-            .order("month", { descending: true })
+            .order("year", { ascending: false })
+            .order("month", { ascending: false })
             .limit(12); // Last 1 year of history
 
         const paidBills = (paidRecords || []).map(b => ({
