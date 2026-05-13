@@ -46,7 +46,8 @@ export default function RootLayout({
   return (
     <html lang="id" suppressHydrationWarning>
       <head>
-        <link rel="stylesheet" href="/acuasafe/fonts/flaticon.css" />
+        <link rel="preload" href="/acuasafe/fonts/flaticon.css" as="style" />
+        <link rel="stylesheet" href="/acuasafe/fonts/flaticon.css" media="print" onLoad={(e) => { (e.target as any).media = 'all' }} />
       </head>
       <body className={`${fontBody.className} ${fontMsStufi.variable} bg-[#f0f1f6]`}>
         <TooltipProvider>
