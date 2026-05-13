@@ -16,6 +16,9 @@ export default function MobileCekTagihan() {
     const [result, setResult] = useState<BillDetails | null>(null);
     const [isPaymentMockupOpen, setIsPaymentMockupOpen] = useState(false);
     const [rememberMe, setRememberMe] = useState(false);
+    const [selectedBills, setSelectedBills] = useState<number[]>([]);
+    const [paymentMode, setPaymentMode] = useState<'total' | 'partial'>('total');
+    const [partialAmount, setPartialAmount] = useState<number>(0);
 
     // Load saved connection number on mount
     useEffect(() => {
@@ -50,6 +53,32 @@ export default function MobileCekTagihan() {
         }
         setLoading(false);
     };
+
+    // Reset selection when new data is loaded
+    useEffect(() => {
+        if (result && result.unpaidBills.length > 0) {
+            setSelectedBills(result.unpaidBills.map((_, i) => i));
+            setPaymentMode('total');
+        }
+    }, [result]);
+
+    const toggleBillSelection = (index: number) => {
+        setSelectedBills(prev => 
+            prev.includes(index) 
+                ? prev.filter(i => i !== index)
+                : [...prev, index]
+        );
+        setPaymentMode('total');
+    };
+
+    const calculateSelectedTotal = () => {
+        if (!result) return 0;
+        return result.unpaidBills
+            .filter((_, idx) => selectedBills.includes(idx))
+            .reduce((sum, bill) => sum + bill.amount, 0);
+    };
+
+    const currentTotal = paymentMode === 'total' ? calculateSelectedTotal() : partialAmount;
 
     const formatPrice = (amount: number) => {
         return new Intl.NumberFormat("id-ID", {
@@ -184,13 +213,19 @@ export default function MobileCekTagihan() {
                             {/* Bills List */}
                             <div className="space-y-4">
                                 <div className="flex items-center justify-between px-2">
-                                    <h3 className="font-bold flex items-center gap-2">
-                                        Rincian Tagihan 
-                                        <span className="text-xs bg-slate-200 text-slate-600 px-2 py-0.5 rounded-full">{result.unpaidBills.length}</span>
+                                    <h3 className="font-bold flex items-center gap-2 text-slate-800">
+                                        Pilih Tagihan 
+                                        <span className="text-[10px] bg-slate-200 text-slate-600 px-2 py-0.5 rounded-full">{result.unpaidBills.length}</span>
                                     </h3>
-                                    {result.unpaidBills.length > 0 && (
-                                        <p className="text-xs text-blue-600 font-bold">Belum Terbayar</p>
-                                    )}
+                                    <button 
+                                        onClick={() => {
+                                            if (selectedBills.length === result.unpaidBills.length) setSelectedBills([]);
+                                            else setSelectedBills(result.unpaidBills.map((_, i) => i));
+                                        }}
+                                        className="text-xs text-blue-600 font-bold"
+                                    >
+                                        {selectedBills.length === result.unpaidBills.length ? "Hapus" : "Pilih Semua"}
+                                    </button>
                                 </div>
 
                                 {result.unpaidBills.length > 0 ? (
@@ -198,21 +233,30 @@ export default function MobileCekTagihan() {
                                         {result.unpaidBills.map((bill, idx) => (
                                             <motion.div 
                                                 key={idx}
+                                                onClick={() => toggleBillSelection(idx)}
                                                 initial={{ opacity: 0, x: -10 }}
                                                 animate={{ opacity: 1, x: 0 }}
                                                 transition={{ delay: idx * 0.1 }}
-                                                className="bg-white p-5 rounded-2xl border border-slate-100 flex justify-between items-center shadow-sm"
+                                                className={`p-5 rounded-3xl border transition-all flex justify-between items-center shadow-sm cursor-pointer active:scale-[0.98] ${
+                                                    selectedBills.includes(idx) 
+                                                        ? "bg-blue-50 border-blue-200 ring-2 ring-blue-500/10" 
+                                                        : "bg-white border-slate-100"
+                                                }`}
                                             >
                                                 <div className="flex items-center gap-4">
-                                                    <div className="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center text-blue-600">
-                                                        <History className="w-5 h-5" />
+                                                    <div className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-colors ${
+                                                        selectedBills.includes(idx) ? "bg-blue-600 border-blue-600 text-white" : "border-slate-200"
+                                                    }`}>
+                                                        {selectedBills.includes(idx) && <CheckCircle2 className="w-4 h-4" />}
                                                     </div>
                                                     <div>
-                                                        <p className="font-bold text-slate-900">{bill.period}</p>
+                                                        <p className={`font-bold transition-colors ${selectedBills.includes(idx) ? "text-blue-900" : "text-slate-700"}`}>{bill.period}</p>
                                                         <p className="text-[10px] font-medium text-slate-400">Pemakaian: {bill.usage} m³</p>
                                                     </div>
                                                 </div>
-                                                <p className="font-black text-red-500">{formatPrice(bill.amount)}</p>
+                                                <p className={`font-black transition-colors ${selectedBills.includes(idx) ? "text-blue-600" : "text-slate-400"}`}>
+                                                    {formatPrice(bill.amount)}
+                                                </p>
                                             </motion.div>
                                         ))}
                                     </div>
@@ -227,40 +271,108 @@ export default function MobileCekTagihan() {
                                 )}
                             </div>
 
-                            {/* Total & Action */}
+                            {/* Partial Payment Option */}
                             {result.unpaidBills.length > 0 && (
-                                <motion.div 
-                                    initial={{ opacity: 0, scale: 0.9 }}
-                                    animate={{ opacity: 1, scale: 1 }}
-                                    className="bg-white p-6 rounded-[2rem] shadow-2xl shadow-blue-500/10 border-2 border-blue-50 space-y-6"
-                                >
-                                    <div className="flex justify-between items-end">
-                                        <div>
-                                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Total Bayar</p>
-                                            <p className="text-3xl font-black text-slate-900 leading-none">{formatPrice(result.totalAmount)}</p>
+                                <div className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm space-y-4">
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex items-center gap-3">
+                                            <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors ${paymentMode === 'partial' ? "bg-blue-600 text-white" : "bg-slate-100 text-slate-400"}`}>
+                                                <Wallet className="w-5 h-5" />
+                                            </div>
+                                            <div>
+                                                <h4 className="font-bold text-sm">Bayar Nominal Lain?</h4>
+                                                <p className="text-[10px] text-slate-400">Gunakan jika ingin menyicil</p>
+                                            </div>
                                         </div>
-                                        <div className="text-right">
-                                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Metode</p>
-                                            <p className="text-sm font-bold text-blue-600 flex items-center gap-1">Online <CreditCard className="w-3 h-3" /></p>
-                                        </div>
+                                        <button 
+                                            onClick={() => {
+                                                if (paymentMode === 'partial') {
+                                                    setPaymentMode('total');
+                                                } else {
+                                                    setPaymentMode('partial');
+                                                    setPartialAmount(calculateSelectedTotal());
+                                                }
+                                            }}
+                                            className={`text-xs font-bold px-4 py-2 rounded-xl transition-all ${
+                                                paymentMode === 'partial' ? "bg-blue-600 text-white shadow-lg shadow-blue-200" : "bg-slate-100 text-slate-500"
+                                            }`}
+                                        >
+                                            {paymentMode === 'partial' ? "Aktif" : "Coba"}
+                                        </button>
                                     </div>
-
-                                    <Button 
-                                        onClick={() => setIsPaymentMockupOpen(true)}
-                                        className="w-full h-16 rounded-2xl bg-slate-900 hover:bg-slate-800 text-white text-lg font-bold transition-all active:scale-95 shadow-xl shadow-slate-200"
-                                    >
-                                        Bayar Sekarang
-                                    </Button>
                                     
-                                    <p className="text-[10px] text-center text-slate-400 px-4">
-                                        <Info className="w-3 h-3 inline mr-1" /> Pembayaran akan diproses secara otomatis dan status tagihan langsung berubah menjadi lunas.
-                                    </p>
-                                </motion.div>
+                                    <AnimatePresence>
+                                        {paymentMode === 'partial' && (
+                                            <motion.div
+                                                initial={{ height: 0, opacity: 0 }}
+                                                animate={{ height: "auto", opacity: 1 }}
+                                                exit={{ height: 0, opacity: 0 }}
+                                                className="overflow-hidden"
+                                            >
+                                                <div className="pt-2 space-y-4">
+                                                    <div className="relative">
+                                                        <span className="absolute left-5 top-1/2 -translate-y-1/2 font-black text-slate-300 text-lg">Rp</span>
+                                                        <Input 
+                                                            type="number"
+                                                            value={partialAmount || ""}
+                                                            onChange={(e) => setPartialAmount(Number(e.target.value))}
+                                                            className="h-16 pl-14 pr-6 rounded-2xl bg-slate-50 font-black text-xl border-transparent focus:bg-white focus:ring-4 focus:ring-blue-100 transition-all"
+                                                            placeholder="0"
+                                                        />
+                                                    </div>
+                                                    <div className="flex gap-2">
+                                                        {[20000, 50000, 100000].map(val => (
+                                                            <button 
+                                                                key={val}
+                                                                onClick={() => setPartialAmount(val)}
+                                                                className="flex-1 py-3 bg-slate-50 border border-slate-100 rounded-xl text-[10px] font-black text-slate-600 hover:bg-blue-600 hover:text-white hover:border-blue-600 transition-all"
+                                                            >
+                                                                {val/1000}K
+                                                            </button>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            </motion.div>
+                                        )}
+                                    </AnimatePresence>
+                                </div>
                             )}
                         </motion.div>
                     )}
                 </AnimatePresence>
             </main>
+
+            {/* Sticky Bottom Total & Action */}
+            <AnimatePresence>
+                {result && result.unpaidBills.length > 0 && (
+                    <motion.div 
+                        initial={{ y: 100 }}
+                        animate={{ y: 0 }}
+                        exit={{ y: 100 }}
+                        className="fixed bottom-0 inset-x-0 bg-white/90 backdrop-blur-xl border-t border-slate-100 p-6 z-40 max-w-lg mx-auto rounded-t-[2.5rem] shadow-[0_-15px_40px_rgba(0,0,0,0.08)]"
+                    >
+                        <div className="flex justify-between items-center gap-6">
+                            <div className="flex-1">
+                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">
+                                    {paymentMode === 'total' ? `Bayar (${selectedBills.length} Bln)` : "Nominal Cicilan"}
+                                </p>
+                                <p className={`text-2xl font-black transition-all ${
+                                    currentTotal > 0 ? "text-slate-900" : "text-slate-300"
+                                }`}>
+                                    {formatPrice(currentTotal)}
+                                </p>
+                            </div>
+                            <Button 
+                                onClick={() => setIsPaymentMockupOpen(true)}
+                                disabled={currentTotal <= 0}
+                                className="h-16 px-10 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white font-bold shadow-xl shadow-blue-500/30 transition-all active:scale-95 disabled:opacity-50 flex-shrink-0"
+                            >
+                                Bayar
+                            </Button>
+                        </div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
 
             {/* Payment Options Simulation Modal */}
             <AnimatePresence>
