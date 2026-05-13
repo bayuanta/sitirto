@@ -431,7 +431,7 @@ export default function MobileCekTagihan() {
 
             {/* Sticky Bottom Total & Action */}
             <AnimatePresence>
-                {result && result.unpaidBills.length > 0 && (
+                {activeTab === 'cek' && result && result.unpaidBills.length > 0 && (
                     <motion.div 
                         initial={{ y: 100 }}
                         animate={{ y: 0 }}
