@@ -64,12 +64,12 @@ export async function checkBill(connectionNumber: string): Promise<{ success: bo
         // 3. Find Paid Bills (History)
         const { data: paidRecords, error: paidError } = await supabase
             .from("meter_records")
-            .select("id, month, year, usage, paid_amount, updated_at")
+            .select("id, month, year, usage, paid_amount, updated_at, status")
             .eq("customer_id", customer.id)
-            .eq("status", "paid")
+            .or("status.ilike.paid,status.ilike.lunas") // Handle various 'paid' or 'lunas' variants
             .order("year", { ascending: false })
             .order("month", { ascending: false })
-            .limit(12); // Last 1 year of history
+            .limit(12);
 
         const paidBills = (paidRecords || []).map(b => ({
             id: b.id,
