@@ -299,7 +299,7 @@ export default function PembayaranPage() {
                 <div className="col-span-12 md:col-span-7 h-auto md:h-full flex flex-col min-h-0">
                     {!selectedCustomer ? (
                         // --- MODE 1: SEARCH & LIST ---
-                        <div className="bg-white rounded-2xl shadow-sm border border-slate-100 flex flex-col h-full overflow-hidden animate-in fade-in slide-in-from-left-4 duration-300">
+                        <div className="bg-white rounded-2xl shadow-sm border border-slate-100 flex flex-col h-full overflow-hidden animate-in fade-in duration-500">
                             {/* SEARCH HEADER */}
                             <div className="p-3 border-b border-slate-100 flex items-center gap-3">
                                 <Label htmlFor="pembayaran-search" className="sr-only">Cari Pelanggan</Label>
@@ -321,10 +321,10 @@ export default function PembayaranPage() {
                                 )}
                             </div>
 
-                            {/* FILTER WILAYAH - DROPDOWN */}
-                            {areas.length > 0 && (
-                                <div className="px-3 py-2 border-b border-slate-50">
-                                    <div className="relative">
+                            {/* FILTER WILAYAH - DROPDOWN (Fixed height to prevent CLS) */}
+                            <div className="px-3 py-2 border-b border-slate-50 min-h-[53px] flex items-center">
+                                {areas.length > 0 ? (
+                                    <div className="relative w-full animate-in fade-in duration-300">
                                         <Label htmlFor="pembayaran-wilayah-filter" className="sr-only">Filter Wilayah</Label>
                                         <select
                                             id="pembayaran-wilayah-filter"
@@ -345,8 +345,10 @@ export default function PembayaranPage() {
                                             <ArrowLeft className="w-3.5 h-3.5 -rotate-90" />
                                         </div>
                                     </div>
-                                </div>
-                            )}
+                                ) : (
+                                    <div className="w-full h-9 bg-slate-100/50 animate-pulse rounded-lg" />
+                                )}
+                            </div>
 
                             {/* LIST CUSTOMER */}
                             <div className="flex-1 overflow-y-auto p-0 scrollbar-thin scrollbar-thumb-slate-200">
@@ -408,7 +410,7 @@ export default function PembayaranPage() {
                         </div>
                     ) : (
                         // --- MODE 2: TRANSACTION TABLE ---
-                        <div className="bg-white rounded-2xl shadow-sm border border-slate-100 flex flex-col h-full overflow-hidden animate-in fade-in slide-in-from-right-4 duration-300 relative">
+                        <div className="bg-white rounded-2xl shadow-sm border border-slate-100 flex flex-col h-full overflow-hidden animate-in fade-in duration-500 relative">
                             {/* HEADER BACK */}
                             <div className="px-4 py-3 border-b border-slate-100 flex items-center justify-between bg-white z-10 h-16 shrink-0">
                                 <div className="flex items-center gap-3">
@@ -562,7 +564,7 @@ export default function PembayaranPage() {
                 <div className="col-span-12 md:col-span-5 h-auto md:h-full flex flex-col min-h-0">
                     {!selectedCustomer ? (
                         // --- MODE 1: DASHBOARD STATS ---
-                        <div className="bg-white rounded-2xl shadow-sm border border-slate-100 flex flex-col items-center justify-center p-6 h-full text-center space-y-4 animate-in fade-in zoom-in-95 duration-500 delay-100">
+                        <div className="bg-white rounded-2xl shadow-sm border border-slate-100 flex flex-col items-center justify-center p-6 h-full text-center space-y-4 animate-in fade-in duration-500">
                             <div className="w-20 h-20 bg-indigo-50 rounded-full flex items-center justify-center shadow-inner">
                                 <Store className="w-8 h-8 text-indigo-500" />
                             </div>
@@ -588,7 +590,7 @@ export default function PembayaranPage() {
                         </div>
                     ) : (
                         // --- MODE 2: PAYMENT EXECUTION PANEL ---
-                        <div className="bg-white rounded-2xl shadow-xl border border-slate-200 flex flex-col h-full overflow-hidden animate-in slide-in-from-bottom-4 md:slide-in-from-right-4 duration-500 relative ring-1 ring-slate-200">
+                        <div className="bg-white rounded-2xl shadow-xl border border-slate-200 flex flex-col h-full overflow-hidden animate-in fade-in duration-500 relative ring-1 ring-slate-200">
                             {/* HEADER: DEPOSIT INFO (TIDIED UP) */}
                             <div className="bg-indigo-600 px-4 py-2.5 flex items-center justify-between shrink-0 shadow-sm">
                                 <div className="flex items-center gap-2 text-indigo-100">
