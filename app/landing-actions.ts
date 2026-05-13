@@ -64,33 +64,31 @@ export async function checkBill(connectionNumber: string): Promise<{ success: bo
             period: `${months[b.month - 1]} ${b.year}`
         }));
 
-        // 3. Find All Records and Filter in JS (Safer for Debugging)
-        const { data: allRecords, error: allError } = await supabase
-            .from("meter_records")
-            .select("id, month, year, usage, paid_amount, updated_at, status")
+        // 3. Find Paid History from Transactions Table
+        const { data: transactions, error: txError } = await supabase
+            .from("transactions")
+            .select("id, total_amount, payment_date, notes, method")
             .eq("customer_id", customer.id)
-            .order("year", { ascending: false })
-            .order("month", { ascending: false });
+            .order("payment_date", { ascending: false })
+            .limit(15);
 
-        if (allError) {
-            console.error("Fetch All Records Error:", allError);
+        if (txError) {
+            console.error("Fetch Transactions Error:", txError);
         }
 
-        // Filter for paid bills in JS
-        const paidRecords = (allRecords || []).filter(r => 
-            r.status?.toLowerCase().includes('paid') || 
-            r.status?.toLowerCase().includes('lunas')
-        );
-
-        const paidBills = paidRecords.map(b => ({
-            id: b.id,
-            month: b.month,
-            year: b.year,
-            usage: b.usage || 0,
-            amount: b.paid_amount || 0,
-            paidAt: b.updated_at || "",
-            period: `${months[b.month - 1]} ${b.year}`
-        }));
+        const paidBills = (transactions || []).map(tx => {
+            // Try to extract period from notes if it follows a pattern like "Januari 2024"
+            // Default to "Pembayaran Air" if no period found
+            return {
+                id: tx.id.toString(),
+                month: 0, 
+                year: 0,
+                usage: 0,
+                amount: tx.total_amount || 0,
+                paidAt: tx.payment_date || "",
+                period: tx.notes || "Pembayaran Air"
+            };
+        });
 
         const totalAmount = unpaidBills.reduce((sum, b) => sum + b.amount, 0);
 
