@@ -26,8 +26,9 @@ export type BillDetails = {
 };
 
 export async function checkBill(connectionNumber: string): Promise<{ success: boolean; data?: BillDetails; error?: string }> {
-    const supabase = createAdminClient();
     try {
+        const supabase = createAdminClient();
+
         // 1. Find Customer
         const { data: customer, error: customerError } = await supabase
             .from("customers")
@@ -36,7 +37,8 @@ export async function checkBill(connectionNumber: string): Promise<{ success: bo
             .single();
 
         if (customerError || !customer) {
-            return { success: false, error: "Nomor Pelanggan tidak ditemukan." };
+            console.error("Customer Error:", customerError);
+            return { success: false, error: "Nomor Pelanggan tidak ditemukan atau database sibuk." };
         }
 
         // 2. Find Unpaid Bills
@@ -96,8 +98,8 @@ export async function checkBill(connectionNumber: string): Promise<{ success: bo
             }
         };
 
-    } catch (error) {
+    } catch (error: any) {
         console.error("Check Bill Error:", error);
-        return { success: false, error: "Terjadi kesalahan internal." };
+        return { success: false, error: `Gagal menyambung ke server: ${error.message || "Cek koneksi database"}` };
     }
 }
