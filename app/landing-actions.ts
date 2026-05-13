@@ -64,17 +64,25 @@ export async function checkBill(connectionNumber: string): Promise<{ success: bo
             period: `${months[b.month - 1]} ${b.year}`
         }));
 
-        // 3. Find Paid Bills (History)
-        const { data: paidRecords, error: paidError } = await supabase
+        // 3. Find All Records and Filter in JS (Safer for Debugging)
+        const { data: allRecords, error: allError } = await supabase
             .from("meter_records")
             .select("id, month, year, usage, paid_amount, updated_at, status")
             .eq("customer_id", customer.id)
-            .or("status.ilike.paid,status.ilike.lunas") // Handle various 'paid' or 'lunas' variants
             .order("year", { ascending: false })
-            .order("month", { ascending: false })
-            .limit(12);
+            .order("month", { ascending: false });
 
-        const paidBills = (paidRecords || []).map(b => ({
+        if (allError) {
+            console.error("Fetch All Records Error:", allError);
+        }
+
+        // Filter for paid bills in JS
+        const paidRecords = (allRecords || []).filter(r => 
+            r.status?.toLowerCase().includes('paid') || 
+            r.status?.toLowerCase().includes('lunas')
+        );
+
+        const paidBills = paidRecords.map(b => ({
             id: b.id,
             month: b.month,
             year: b.year,
