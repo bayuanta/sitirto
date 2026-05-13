@@ -293,7 +293,7 @@ export default function MobileCekTagihan() {
                                 <div className="p-4 bg-blue-50 rounded-2xl border-2 border-blue-100 flex items-center justify-between group cursor-pointer hover:border-blue-500 transition-all">
                                     <div className="flex items-center gap-4">
                                         <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center shadow-sm">
-                                            < smartphone className="w-6 h-6 text-blue-600" />
+                                            <Smartphone className="w-6 h-6 text-blue-600" />
                                         </div>
                                         <div>
                                             <p className="font-bold">QRIS (GoPay, OVO, Dana)</p>
