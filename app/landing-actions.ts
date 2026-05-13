@@ -13,6 +13,15 @@ export type BillDetails = {
         amount: number;
         period: string;
     }[];
+    paidBills: {
+        id: string;
+        month: number;
+        year: number;
+        usage: number;
+        amount: number;
+        paidAt: string;
+        period: string;
+    }[];
     totalAmount: number;
 };
 
@@ -52,6 +61,26 @@ export async function checkBill(connectionNumber: string): Promise<{ success: bo
             period: `${months[b.month - 1]} ${b.year}`
         }));
 
+        // 3. Find Paid Bills (History)
+        const { data: paidRecords, error: paidError } = await supabase
+            .from("meter_records")
+            .select("id, month, year, usage, paid_amount, updated_at")
+            .eq("customer_id", customer.id)
+            .eq("status", "paid")
+            .order("year", { descending: true })
+            .order("month", { descending: true })
+            .limit(12); // Last 1 year of history
+
+        const paidBills = (paidRecords || []).map(b => ({
+            id: b.id,
+            month: b.month,
+            year: b.year,
+            usage: b.usage || 0,
+            amount: b.paid_amount || 0,
+            paidAt: b.updated_at || "",
+            period: `${months[b.month - 1]} ${b.year}`
+        }));
+
         const totalAmount = unpaidBills.reduce((sum, b) => sum + b.amount, 0);
 
         return {
@@ -61,6 +90,7 @@ export async function checkBill(connectionNumber: string): Promise<{ success: bo
                 customerNumber: customer.connection_number,
                 address: customer.address || "-",
                 unpaidBills,
+                paidBills,
                 totalAmount
             }
         };
