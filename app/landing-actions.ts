@@ -1,6 +1,6 @@
 "use server";
 
-import { supabase } from "@/lib/supabase";
+import { createAdminClient } from "@/lib/supabase-admin";
 
 export type BillDetails = {
     customerName: string;
@@ -26,6 +26,7 @@ export type BillDetails = {
 };
 
 export async function checkBill(connectionNumber: string): Promise<{ success: boolean; data?: BillDetails; error?: string }> {
+    const supabase = createAdminClient();
     try {
         // 1. Find Customer
         const { data: customer, error: customerError } = await supabase
