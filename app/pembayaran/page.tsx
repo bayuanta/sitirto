@@ -296,7 +296,7 @@ export default function PembayaranPage() {
                 LEFT COLUMN (60%) - MAIN CONTENT
                 SWITCHES: SEARCH LIST <-> BILL TABLE
                ========================================================================================= */}
-                <div className="col-span-12 md:col-span-7 h-auto md:h-full flex flex-col min-h-0">
+                <div className="col-span-12 md:col-span-7 h-[500px] md:h-full flex flex-col min-h-0">
                     {!selectedCustomer ? (
                         // --- MODE 1: SEARCH & LIST ---
                         <div className="bg-white rounded-2xl shadow-sm border border-slate-100 flex flex-col h-full overflow-hidden animate-in fade-in duration-500">
