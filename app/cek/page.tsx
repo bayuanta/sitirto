@@ -89,7 +89,7 @@ export default function MobileCekTagihan() {
     };
 
     return (
-        <div className="min-h-screen bg-[#F8FAFC] text-slate-900 font-sans pb-20">
+        <div className="min-h-screen bg-[#F8FAFC] text-slate-900 font-sans pb-48">
             {/* Header / Branding */}
             <header className="bg-white border-b border-slate-100 px-6 py-6 sticky top-0 z-30 shadow-sm">
                 <div className="flex items-center justify-between max-w-lg mx-auto">
@@ -349,7 +349,7 @@ export default function MobileCekTagihan() {
                         initial={{ y: 100 }}
                         animate={{ y: 0 }}
                         exit={{ y: 100 }}
-                        className="fixed bottom-0 inset-x-0 bg-white/90 backdrop-blur-xl border-t border-slate-100 p-6 z-40 max-w-lg mx-auto rounded-t-[2.5rem] shadow-[0_-15px_40px_rgba(0,0,0,0.08)]"
+                        className="fixed bottom-[76px] inset-x-0 bg-white/95 backdrop-blur-xl border-t border-slate-100 p-6 z-40 max-w-lg mx-auto rounded-t-[2.5rem] shadow-[0_-15px_40px_rgba(0,0,0,0.1)]"
                     >
                         <div className="flex justify-between items-center gap-6">
                             <div className="flex-1">
