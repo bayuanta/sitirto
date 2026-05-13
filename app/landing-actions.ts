@@ -46,7 +46,7 @@ export async function checkBill(connectionNumber: string): Promise<{ success: bo
             .from("meter_records")
             .select("month, year, usage, bill_amount, paid_amount")
             .eq("customer_id", customer.id)
-            .neq("status", "paid")
+            .in("status", ["unpaid", "partial"]) // Explicitly get only unpaid/partial
             .order("year", { ascending: true })
             .order("month", { ascending: true });
 
