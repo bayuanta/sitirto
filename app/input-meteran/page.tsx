@@ -566,7 +566,7 @@ export default function InputMeteranPage() {
                     month={selectedMonth}
                     year={selectedYear}
                     group={selectedGroup}
-                    areaName={selectedArea === 'ALL' ? 'Semua' : (areas.find(a => a.id.toString() === selectedArea)?.name || 'Semua')}
+                    areaName={!mounted || selectedArea === 'ALL' ? 'Semua' : (areas.find(a => a.id.toString() === selectedArea)?.name || 'Semua')}
                     customers={filteredCustomers as any}
                 />
 
@@ -594,7 +594,7 @@ export default function InputMeteranPage() {
                             className="w-full sm:w-auto h-11 md:h-10 px-6 rounded-xl md:rounded-full bg-indigo-50 text-indigo-700 hover:bg-indigo-100 border border-indigo-100 font-black text-xs gap-2 shadow-sm"
                         >
                             {isExporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Share2 className="h-4 w-4" />}
-                            BAGIKAN TAGIHAN KEL. {selectedGroup}
+                            BAGIKAN TAGIHAN KEL. {mounted ? selectedGroup : "..."}
                         </Button>
                     </div>
                 </div>
@@ -610,12 +610,12 @@ export default function InputMeteranPage() {
                                 onClick={() => handleGroupChange(g as 'A' | 'B' | 'ALL')}
                                 className={cn(
                                     "flex-1 md:flex-none px-4 md:px-6 py-2 rounded-lg text-[10px] md:text-xs font-black transition-all whitespace-nowrap",
-                                    selectedGroup === g
+                                    (mounted && selectedGroup === g)
                                         ? "bg-white text-indigo-700 shadow-sm ring-1 ring-black/5"
                                         : "text-slate-500 hover:text-slate-700 hover:bg-slate-200/50"
                                 )}
                             >
-                                {g === 'ALL' ? 'SEMUA' : `KELOMPOK ${g}`}
+                                {g === 'ALL' ? 'SEMUA' : (mounted ? `KELOMPOK ${g}` : `KELOMPOK ...`)}
                             </button>
                         ))}
                     </div>
@@ -723,7 +723,7 @@ export default function InputMeteranPage() {
                             className="gap-2 text-xs font-bold bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100 rounded-xl"
                         >
                             <Settings className="h-4 w-4" />
-                            Atur Urutan Rute {selectedGroup}
+                            Atur Urutan Rute {mounted ? selectedGroup : "..."}
                         </Button>
                     </div>
                 )}
