@@ -139,7 +139,7 @@ Terima kasih atas pembayaran Anda. 🙏`;
                                     {d.usage > 0 && <div className="text-[9px] text-gray-500">{d.usage} m³</div>}
                                 </td>
                                 <td className="py-1 text-right text-[10px] font-mono">
-                                    {d.meterLast}-{d.meterCurrent}
+                                    {(d.meterLast === 0 && d.meterCurrent === 0) ? "-" : `${d.meterLast}-${d.meterCurrent}`}
                                 </td>
                                 <td className="py-1 text-right text-[10px] font-mono">
                                     {formatRupiah(d.billAmount).replace('Rp', '')}
