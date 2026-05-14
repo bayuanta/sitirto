@@ -800,6 +800,11 @@ export default function PelangganPage() {
 function CustomerDrawerContent({ customer, onPayInstallment, formatCurrency, onEditCustomer, onClose, onDetailsLoaded }: { customer: any, onPayInstallment: () => void, formatCurrency: (v: number) => string, onEditCustomer: () => void, onClose?: () => void, onDetailsLoaded?: (fee: any) => void }) {
     const [activeTab, setActiveTab] = useState('overview');
     const [installationFee, setInstallationFee] = useState<any>(null); // Local copy for UI
+    const [mounted, setMounted] = useState(false);
+
+    useEffect(() => {
+        setMounted(true);
+    }, []);
 
     const router = useRouter();
 
