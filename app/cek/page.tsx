@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from "react";
-import { Search, Loader2, X, AlertCircle, CheckCircle2, CreditCard, ArrowRight, Phone, History, Info, Wallet, Smartphone } from "lucide-react";
+import { Search, Loader2, X, AlertCircle, CheckCircle2, CreditCard, ArrowRight, Phone, History, Info, Wallet, Smartphone, Printer } from "lucide-react";
 import { checkBill, type BillDetails } from "@/app/landing-actions";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
