@@ -116,8 +116,9 @@ type CustomerWithRate = CustomerSearch & {
 
 export default function InputMeteranPage() {
     // Session State
-    const [selectedMonth, setSelectedMonth] = useState<number>(new Date().getMonth() + 1);
-    const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
+    const [selectedMonth, setSelectedMonth] = useState<number>(1);
+    const [selectedYear, setSelectedYear] = useState<number>(2026);
+    const [mounted, setMounted] = useState(false);
     const [isExporting, setIsExporting] = useState(false);
     const exportRef = useRef<HTMLDivElement>(null);
 
@@ -130,6 +131,10 @@ export default function InputMeteranPage() {
 
     // Load saved preferences on mount (Client-side only)
     useEffect(() => {
+        setMounted(true);
+        setSelectedMonth(new Date().getMonth() + 1);
+        setSelectedYear(new Date().getFullYear());
+
         const savedGroup = localStorage.getItem('meter_reading_group') as 'A' | 'B' | 'ALL';
         if (savedGroup) setSelectedGroup(savedGroup);
 
@@ -570,7 +575,7 @@ export default function InputMeteranPage() {
                         <h1 className="text-xl font-bold text-slate-900 tracking-tight">Pencatatan Meter</h1>
                         <div className="flex items-center gap-3 mt-1.5 w-full md:w-80">
                             <Progress value={progressPercent} className="h-2 flex-1 rounded-full bg-slate-100" />
-                            <span className="text-[10px] font-bold text-slate-400 whitespace-nowrap">{progressPercent}% Selesai</span>
+                            <span className="text-[10px] font-bold text-slate-400 whitespace-nowrap">{mounted ? progressPercent : 0}% Selesai</span>
                         </div>
                     </div>
 
@@ -642,7 +647,7 @@ export default function InputMeteranPage() {
                                 <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400 z-10" />
                                 <Select name="meter-month-filter" value={selectedMonth.toString()} onValueChange={(v) => setSelectedMonth(parseInt(v))}>
                                     <SelectTrigger id="meter-month-filter" className="pl-9 h-11 md:h-10 bg-white border-slate-200 rounded-xl md:rounded-lg text-[10px] md:text-xs font-bold text-slate-700 shadow-sm md:shadow-none uppercase">
-                                        <SelectValue />
+                                        <SelectValue placeholder={mounted ? MONTHS[selectedMonth - 1] : "..."} />
                                     </SelectTrigger>
                                     <SelectContent className="z-[9999]">
                                         {MONTHS.map((m, i) => (
