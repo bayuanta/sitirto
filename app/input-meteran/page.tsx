@@ -98,7 +98,7 @@ const MONTHS = [
     "Juli", "Agustus", "September", "Oktober", "November", "Desember"
 ];
 
-// Format currency
+// Format currency - Stable version
 const formatRupiah = (val: number) => `Rp ${val.toLocaleString("id-ID")}`;
 
 // Customer with rate info
@@ -660,7 +660,7 @@ export default function InputMeteranPage() {
                             <div className="relative flex-1 md:w-[100px]">
                                 <CalendarRange className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400 z-10" />
                                 <div className="h-11 md:h-10 bg-white border border-slate-200 rounded-xl md:rounded-lg flex items-center pl-9 pr-3 cursor-pointer hover:bg-slate-50 transition-colors shadow-sm md:shadow-none" onClick={() => setShowYearDialog(true)}>
-                                    <span className="text-[10px] md:text-xs font-black text-slate-700">{selectedYear}</span>
+                                    <span className="text-[10px] md:text-xs font-black text-slate-700">{mounted ? selectedYear : "...."}</span>
                                     <ChevronDown className="ml-auto h-3 w-3 text-slate-400" />
                                 </div>
 
@@ -806,7 +806,7 @@ export default function InputMeteranPage() {
 
                                     <div className="hidden md:flex w-24 flex-col items-center">
                                         <span className="text-[10px] font-bold text-slate-400">BULAN LALU</span>
-                                        <span className="font-mono text-xs font-black text-slate-700">{c.prev_usage ?? 0} m³</span>
+                                        <span className="font-mono text-xs font-black text-slate-700">{mounted ? (c.prev_usage ?? 0) : 0} m³</span>
                                     </div>
 
                                     <div className="hidden md:flex w-32 flex-col items-center gap-1">
@@ -822,7 +822,7 @@ export default function InputMeteranPage() {
                                                     onChange={(e) => setManualMeterLast(prev => ({ ...prev, [c.id]: e.target.value }))} 
                                                     disabled={c.is_saved} 
                                                 />
-                                            ) : <span className="font-mono text-xs font-black text-slate-700 bg-slate-50 px-2 py-0.5 rounded">{c.meter_lalu}</span>}
+                                            ) : <span className="font-mono text-xs font-black text-slate-700 bg-slate-50 px-2 py-0.5 rounded">{mounted ? c.meter_lalu : "..."}</span>}
                                             <div className="flex items-center gap-1">
                                                 <Switch checked={meterReplacements[c.id] || false} onCheckedChange={(checked) => { setMeterReplacements(prev => ({ ...prev, [c.id]: checked })); if (checked) setManualMeterLast(prev => ({ ...prev, [c.id]: "0" })); }} disabled={c.is_saved} className="h-3.5 w-6" />
                                                 <span className="text-[8px] font-black text-slate-400">GANTI</span>
@@ -859,7 +859,7 @@ export default function InputMeteranPage() {
                                                 }}
                                                 className="md:hidden text-[10px] font-black text-indigo-600 bg-indigo-50 px-3 py-1 rounded-full border border-indigo-100 active:bg-indigo-200"
                                             >
-                                                Saran: {c.meter_lalu + (c.prev_usage || 0)} m³
+                                                Saran: {mounted ? (c.meter_lalu + (c.prev_usage || 0)) : "..."} m³
                                             </button>
                                         )}
                                     </div>
@@ -868,7 +868,7 @@ export default function InputMeteranPage() {
                                         <span className="md:hidden text-xs font-bold text-slate-400 uppercase">Pakai:</span>
                                         <div className={cn("flex items-center gap-1 font-black text-sm md:text-xs", isNegative ? "text-rose-600" : usage !== null && usage > 0 ? "text-indigo-600" : "text-slate-400")}>
                                             {isNegative ? <AlertTriangle className="h-3 w-3" /> : usage !== null && usage > 0 ? <Droplets className="h-3 w-3" /> : null}
-                                            {usage !== null ? `${usage} m³` : "-"}
+                                            {mounted && usage !== null ? `${usage} m³` : "-"}
                                         </div>
                                     </div>
 
@@ -876,7 +876,7 @@ export default function InputMeteranPage() {
                                         <span className="md:hidden text-xs font-bold text-slate-400 uppercase tracking-tighter">Tagihan:</span>
                                         <div className="text-right">
                                             <p className={cn("text-sm font-black", c.is_saved ? "text-emerald-700" : "text-slate-900")}>
-                                                {displayBill !== null ? formatRupiah(displayBill) : "-"}
+                                                {mounted && displayBill !== null ? formatRupiah(displayBill) : "-"}
                                             </p>
                                         </div>
                                     </div>
