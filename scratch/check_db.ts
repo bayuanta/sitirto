@@ -1,41 +1,54 @@
 
-import { createAdminClient } from '../lib/supabase-admin';
+import { createClient } from "@supabase/supabase-js";
+import * as dotenv from "dotenv";
+import { resolve } from "path";
 
-async function debugData() {
-    const supabase = createAdminClient();
-    const connNumber = "SR-001"; // Ganti jika perlu
+// Load .env.local manually
+dotenv.config({ path: resolve(process.cwd(), ".env.local") });
 
-    console.log("--- DEBUG START ---");
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+if (!supabaseUrl || !supabaseKey) {
+    console.error("Missing Supabase credentials in .env.local");
+    process.exit(1);
+}
+
+const supabase = createClient(supabaseUrl, supabaseKey);
+
+async function checkTransaction(id: number) {
+    console.log(`--- CHECKING TRANSACTION #${id} ---`);
     
-    // 1. Cek Pelanggan
-    const { data: customer } = await supabase
-        .from("customers")
-        .select("id, name, connection_number")
-        .ilike("connection_number", connNumber)
+    const { data: tx, error } = await supabase
+        .from("transactions")
+        .select("*")
+        .eq("id", id)
         .single();
 
-    if (!customer) {
-        console.log("Pelanggan tidak ditemukan!");
+    if (error || !tx) {
+        console.error("Transaction not found:", error);
         return;
     }
 
-    console.log(`Pelanggan ditemukan: ${customer.name} (ID: ${customer.id})`);
+    console.log("Customer ID:", tx.customer_id);
+    console.log("Total Amount:", tx.total_amount);
+    console.log("Allocation Details Type:", typeof tx.allocation_details);
+    console.log("Allocation Details Content:", JSON.stringify(tx.allocation_details, null, 2));
 
-    // 2. Cek SEMUA record di meter_records untuk pelanggan ini
-    const { data: allRecords } = await supabase
+    // Also check meter_records that might be related but not in allocation_details
+    const { data: records } = await supabase
         .from("meter_records")
-        .select("id, month, year, status, paid_amount")
-        .eq("customer_id", customer.id);
-
-    console.log(`Total record ditemukan: ${allRecords?.length || 0}`);
+        .select("id, month, year, status, paid_amount, transaction_id")
+        .eq("transaction_id", id);
     
-    if (allRecords) {
-        allRecords.forEach(r => {
-            console.log(`- Periode: ${r.month}/${r.year} | Status: [${r.status}] | Paid: ${r.paid_amount}`);
+    console.log(`\nMeter Records linked by transaction_id: ${records?.length || 0}`);
+    if (records) {
+        records.forEach(r => {
+            console.log(`- ID: ${r.id} | Periode: ${r.month}/${r.year} | Status: ${r.status}`);
         });
     }
 
-    console.log("--- DEBUG END ---");
+    console.log("--- END ---");
 }
 
-debugData();
+checkTransaction(71);

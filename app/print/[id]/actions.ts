@@ -67,7 +67,7 @@ export async function getPrintData(transactionId: number): Promise<PrintData | n
         }
     }
 
-    const billIds = allocationDetails.map(d => d.bill_id || d.record_id).filter(Boolean);
+    const billIds = allocationDetails.map(d => d.bill_id || d.record_id || d.meter_record_id).filter(Boolean);
 
     // 3. Fetch Meter Records for these bills
     let meterRecordsMap: Record<number, any> = {};
@@ -85,24 +85,46 @@ export async function getPrintData(transactionId: number): Promise<PrintData | n
     }
 
     // 4. Assemble Details
-    const details = allocationDetails.map(detail => {
-        const recordId = detail.bill_id || detail.record_id;
+    let details = allocationDetails.map(detail => {
+        const recordId = detail.bill_id || detail.record_id || detail.meter_record_id;
         const record = meterRecordsMap[recordId];
 
-        // If record exists, use its data. If not, fallback to basic info
         return {
             month: detail.month || record?.month || 0,
             year: detail.year || record?.year || 0,
-            amount: detail.amount || 0,
+            amount: detail.amount || tx.total_amount || 0,
             usage: record?.usage || 0,
             meterLast: record?.meter_last || 0,
             meterCurrent: record?.meter_current || 0,
             waterCost: record ? (record.usage * record.rate_snapshot) : 0,
             maintenanceCost: record?.maintenance_snapshot || 0,
-            billAmount: record?.bill_amount || 0,
+            billAmount: record?.bill_amount || detail.amount || tx.total_amount || 0,
             remaining: record ? (record.bill_amount - record.paid_amount) : 0,
         };
     });
+
+    // 5. Fallback: If no details from allocation, try to fetch by transaction_id in meter_records
+    if (details.length === 0) {
+        const { data: fallbackRecords } = await supabase
+            .from("meter_records")
+            .select("*")
+            .eq("transaction_id", transactionId);
+
+        if (fallbackRecords && fallbackRecords.length > 0) {
+            details = fallbackRecords.map(record => ({
+                month: record.month,
+                year: record.year,
+                amount: record.paid_amount || tx.total_amount || 0,
+                usage: record.usage || 0,
+                meterLast: record.meter_last || 0,
+                meterCurrent: record.meter_current || 0,
+                waterCost: record.usage * record.rate_snapshot,
+                maintenanceCost: record.maintenance_snapshot,
+                billAmount: record.bill_amount,
+                remaining: record.bill_amount - record.paid_amount,
+            }));
+        }
+    }
 
     return {
         transactionId: tx.id,
