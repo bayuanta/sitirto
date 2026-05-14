@@ -398,8 +398,12 @@ export default function MobileCekTagihan() {
                                                 <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Total Bayar</p>
                                                 <p className="font-black text-slate-900">{formatPrice(bill.amount)}</p>
                                             </div>
-                                            <Button size="sm" className="bg-slate-50 hover:bg-blue-50 text-slate-600 hover:text-blue-600 border border-slate-100 rounded-xl px-4 h-10 transition-all">
-                                                <Smartphone className="w-4 h-4 mr-2" /> Struk
+                                            <Button 
+                                                onClick={() => window.open(`/print/${bill.id}?format=thermal`, '_blank')}
+                                                size="sm" 
+                                                className="bg-slate-50 hover:bg-blue-50 text-slate-600 hover:text-blue-600 border border-slate-100 rounded-xl px-4 h-10 transition-all"
+                                            >
+                                                <Printer className="w-4 h-4 mr-2" /> Struk
                                             </Button>
                                         </div>
                                     </motion.div>

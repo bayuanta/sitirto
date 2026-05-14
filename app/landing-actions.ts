@@ -77,8 +77,14 @@ export async function checkBill(connectionNumber: string): Promise<{ success: bo
         }
 
         const paidBills = (transactions || []).map(tx => {
-            // Try to extract period from notes if it follows a pattern like "Januari 2024"
-            // Default to "Pembayaran Air" if no period found
+            let displayPeriod = tx.notes || "Pembayaran Air";
+            
+            // If it's a migration record, use the payment_date to show the month/year
+            if (displayPeriod === "Migrasi Data Historis" && tx.payment_date) {
+                const date = new Date(tx.payment_date);
+                displayPeriod = `${months[date.getMonth()]} ${date.getFullYear()}`;
+            }
+
             return {
                 id: tx.id.toString(),
                 month: 0, 
@@ -86,7 +92,7 @@ export async function checkBill(connectionNumber: string): Promise<{ success: bo
                 usage: 0,
                 amount: tx.total_amount || 0,
                 paidAt: tx.payment_date || "",
-                period: tx.notes || "Pembayaran Air"
+                period: displayPeriod
             };
         });
 
