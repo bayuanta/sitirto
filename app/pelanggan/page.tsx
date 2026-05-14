@@ -351,6 +351,15 @@ function PelangganPageContent() {
         initialState: { pagination: { pageSize: 8 } },
     });
 
+    if (!mounted) {
+        return (
+            <div className="bg-white rounded-[20px] border border-slate-200/60 shadow-sm p-6 min-h-[80vh] flex flex-col items-center justify-center">
+                <Loader2 className="h-10 w-10 animate-spin text-indigo-600 mb-4" />
+                <p className="text-sm font-medium text-slate-500">Menyiapkan Aplikasi...</p>
+            </div>
+        );
+    }
+
     return (
         <div className="bg-white rounded-[20px] border border-slate-200/60 shadow-sm p-6 min-h-[80vh] flex flex-col relative overflow-hidden">
 
