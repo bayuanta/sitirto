@@ -358,7 +358,7 @@ export default function MobileCekTagihan() {
                             </div>
 
                             {/* Year Filter Pills */}
-                            {result.paidBills.length > 0 && (
+                            {result && result.paidBills.length > 0 && (
                                 <div className="flex gap-2 overflow-x-auto pb-2 no-scrollbar px-2">
                                     {["Semua", ...Array.from(new Set(result.paidBills.map(b => new Date(b.paidAt).getFullYear().toString()))).sort((a,b) => b.localeCompare(a))].map(year => (
                                         <button
