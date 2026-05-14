@@ -64,13 +64,12 @@ export async function checkBill(connectionNumber: string): Promise<{ success: bo
             period: `${months[b.month - 1]} ${b.year}`
         }));
 
-        // 3. Find Paid History from Transactions Table
         const { data: transactions, error: txError } = await supabase
             .from("transactions")
             .select("id, total_amount, payment_date, notes, method")
             .eq("customer_id", customer.id)
             .order("payment_date", { ascending: false })
-            .limit(15);
+            .limit(100);
 
         if (txError) {
             console.error("Fetch Transactions Error:", txError);

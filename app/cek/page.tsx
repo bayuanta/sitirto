@@ -20,6 +20,7 @@ export default function MobileCekTagihan() {
     const [paymentMode, setPaymentMode] = useState<'total' | 'partial'>('total');
     const [partialAmount, setPartialAmount] = useState<number>(0);
     const [activeTab, setActiveTab] = useState<'cek' | 'riwayat' | 'bantuan'>('cek');
+    const [selectedHistoryYear, setSelectedHistoryYear] = useState<string>("Semua");
 
     // Load saved connection number on mount
     useEffect(() => {
@@ -350,9 +351,30 @@ export default function MobileCekTagihan() {
                         animate={{ opacity: 1, x: 0 }}
                         className="space-y-6"
                     >
-                        <div className="flex items-center justify-between px-2">
-                            <h2 className="text-xl font-bold">Riwayat Pembayaran</h2>
-                            <History className="w-5 h-5 text-blue-600" />
+                        <div className="space-y-4">
+                            <div className="flex items-center justify-between px-2">
+                                <h2 className="text-xl font-bold">Riwayat Pembayaran</h2>
+                                <History className="w-5 h-5 text-blue-600" />
+                            </div>
+
+                            {/* Year Filter Pills */}
+                            {result.paidBills.length > 0 && (
+                                <div className="flex gap-2 overflow-x-auto pb-2 no-scrollbar px-2">
+                                    {["Semua", ...Array.from(new Set(result.paidBills.map(b => new Date(b.paidAt).getFullYear().toString()))).sort((a,b) => b.localeCompare(a))].map(year => (
+                                        <button
+                                            key={year}
+                                            onClick={() => setSelectedHistoryYear(year)}
+                                            className={`px-6 py-2 rounded-full text-xs font-bold transition-all whitespace-nowrap shadow-sm border ${
+                                                selectedHistoryYear === year 
+                                                    ? "bg-blue-600 text-white border-blue-600" 
+                                                    : "bg-white text-slate-500 border-slate-100"
+                                            }`}
+                                        >
+                                            {year}
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
                         </div>
 
                         {!result ? (
@@ -372,7 +394,9 @@ export default function MobileCekTagihan() {
                             </div>
                         ) : (
                             <div className="space-y-4 pb-20">
-                                {result.paidBills.map((bill, idx) => (
+                                {result.paidBills
+                                    .filter(b => selectedHistoryYear === "Semua" || new Date(b.paidAt).getFullYear().toString() === selectedHistoryYear)
+                                    .map((bill, idx) => (
                                     <motion.div 
                                         key={bill.id}
                                         initial={{ opacity: 0, y: 10 }}
