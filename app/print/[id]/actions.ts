@@ -126,6 +126,23 @@ export async function getPrintData(transactionId: number): Promise<PrintData | n
         }
     }
 
+    // 6. Last Resort: If STILL no details (common for migration/historical data)
+    // Create one generic row based on transaction total so the receipt isn't empty
+    if (details.length === 0) {
+        details = [{
+            month: new Date(tx.payment_date || tx.created_at).getMonth() + 1,
+            year: new Date(tx.payment_date || tx.created_at).getFullYear(),
+            amount: tx.total_amount,
+            usage: 0,
+            meterLast: 0,
+            meterCurrent: 0,
+            waterCost: tx.total_amount,
+            maintenanceCost: 0,
+            billAmount: tx.total_amount,
+            remaining: 0,
+        }];
+    }
+
     return {
         transactionId: tx.id,
         paymentDate: tx.payment_date || tx.created_at,
