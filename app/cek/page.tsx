@@ -124,6 +124,8 @@ export default function MobileCekTagihan() {
                                 <form onSubmit={(e) => handleCheck(e)} className="space-y-4">
                                     <div className="relative">
                                         <Input
+                                            id="connection-number"
+                                            name="connection-number"
                                             value={connNumber}
                                             onChange={(e) => setConnNumber(e.target.value.toUpperCase())}
                                             placeholder="Contoh: SR-001"
@@ -317,6 +319,8 @@ export default function MobileCekTagihan() {
                                                             <div className="relative">
                                                                 <span className="absolute left-5 top-1/2 -translate-y-1/2 font-black text-slate-300 text-lg">Rp</span>
                                                                 <Input 
+                                                                    id="partial-amount"
+                                                                    name="partial-amount"
                                                                     type="number"
                                                                     value={partialAmount || ""}
                                                                     onChange={(e) => setPartialAmount(Number(e.target.value))}
