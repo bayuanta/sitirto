@@ -140,6 +140,11 @@ function PelangganPageContent() {
     const search = searchParams.get("q") || "";
 
     const isInitialMount = useRef(true);
+    const [mounted, setMounted] = useState(false);
+
+    useEffect(() => {
+        setMounted(true);
+    }, []);
 
     // Load Data
     const loadData = async () => {
@@ -353,7 +358,7 @@ function PelangganPageContent() {
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
                 <div>
                     <h1 className="text-xl font-bold text-slate-900 tracking-tight">Data Pelanggan</h1>
-                    <p className="text-xs text-slate-500 font-medium">Kelola {loading ? "..." : table.getFilteredRowModel().rows.length} pelanggan terdaftar</p>
+                    <p className="text-xs text-slate-500 font-medium">Kelola {!mounted || loading ? "..." : table.getFilteredRowModel().rows.length} pelanggan terdaftar</p>
                 </div>
 
                 <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
@@ -1659,7 +1664,7 @@ Mohon untuk segera melakukan pelunasan. Terima kasih.`;
                                                             <p className="text-xs font-bold text-slate-900">{formatCurrency(pay.amount)}</p>
                                                             <p className="text-[10px] text-slate-500 flex items-center gap-1">
                                                                 <Calendar className="h-3 w-3" />
-                                                                {new Date(pay.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
+                                                                {mounted ? new Date(pay.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }) : "..."}
                                                             </p>
                                                         </div>
                                                     </div>
@@ -1751,7 +1756,7 @@ Mohon untuk segera melakukan pelunasan. Terima kasih.`;
                                                         </Badge>
                                                     </div>
                                                     <p className="text-[10px] text-slate-500">
-                                                        {new Date(tx.date).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                                                        {mounted ? new Date(tx.date).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : "..."}
                                                     </p>
                                                     {tx.related_bills && (
                                                         <p className="text-[10px] text-slate-400 mt-0.5">Tagihan: {tx.related_bills}</p>
