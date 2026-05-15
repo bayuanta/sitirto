@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, useEffect } from "react";
 import { Bell, Search, Menu, LogOut, ChevronDown } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -22,6 +22,11 @@ interface HeaderProps {
 
 export function Header({ className, onMenuClick }: HeaderProps) {
     const [isPending, startTransition] = useTransition();
+    const [mounted, setMounted] = useState(false);
+
+    useEffect(() => {
+        setMounted(true);
+    }, []);
 
     const currentDate = new Date().toLocaleDateString("id-ID", {
         weekday: "short",
@@ -56,7 +61,7 @@ export function Header({ className, onMenuClick }: HeaderProps) {
                         Halo, Admin
                     </h2>
                     <p className="text-[10px] lg:text-xs text-slate-500 font-medium mt-1 capitalize hidden md:block">
-                        {currentDate}
+                        {mounted ? currentDate : "..."}
                     </p>
                 </div>
             </div>

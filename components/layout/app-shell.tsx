@@ -16,6 +16,7 @@ export function AppShell({ children }: AppShellProps) {
     const [isMobile, setIsMobile] = useState(false);
     const [showMobileSidebar, setShowMobileSidebar] = useState(false);
     const pathname = usePathname();
+    const [mounted, setMounted] = useState(false);
 
     // Check if current page is public (login or landing page) or print view - skip layout
     const isPublicPage = pathname === "/login" || pathname === "/" || pathname === "/cek" || pathname.startsWith("/print");
@@ -34,6 +35,7 @@ export function AppShell({ children }: AppShellProps) {
 
         // Initial check
         handleResize();
+        setMounted(true);
 
         window.addEventListener("resize", handleResize);
         return () => window.removeEventListener("resize", handleResize);
@@ -50,6 +52,11 @@ export function AppShell({ children }: AppShellProps) {
     // For public/auth pages, render children without shell
     if (isPublicPage) {
         return <>{children}</>;
+    }
+
+    // Prevent hydration mismatch by waiting for mount
+    if (!mounted) {
+        return <div className="min-h-screen bg-[#f0f1f6]" />;
     }
 
     return (
