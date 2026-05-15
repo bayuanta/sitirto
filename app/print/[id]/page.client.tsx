@@ -14,6 +14,11 @@ export default function PrintClient({ data, initialFormat }: { data: PrintData, 
     const printRef = useRef<HTMLDivElement>(null);
     const [formatOption, setFormatOption] = useState<'thermal' | 'hemat' | 'full'>(initialFormat as any || 'thermal');
     const [isSharing, setIsSharing] = useState(false);
+    const [mounted, setMounted] = useState(false);
+
+    useEffect(() => {
+        setMounted(true);
+    }, []);
 
     const handlePrint = () => {
         window.print();
@@ -112,7 +117,7 @@ Terima kasih atas pembayaran Anda. 🙏`;
             {/* Info */}
             <div className="text-xs mb-4 grid grid-cols-[80px_10px_1fr] gap-y-1">
                 <div className="text-gray-600">No. TRX</div><div>:</div><div className="font-mono">#{data.transactionId}</div>
-                <div className="text-gray-600">Tanggal</div><div>:</div><div>{format(new Date(data.paymentDate), 'dd MMM yyyy HH:mm', { locale: localeId })}</div>
+                <div className="text-gray-600">Tanggal</div><div>:</div><div>{mounted ? format(new Date(data.paymentDate), 'dd MMM yyyy HH:mm', { locale: localeId }) : '...'}</div>
                 <div className="text-gray-600">Pelanggan</div><div>:</div><div className="font-bold">{data.customerName}</div>
                 <div className="text-gray-600">No. Samb.</div><div>:</div><div className="font-mono">{data.customerNumber}</div>
             </div>
@@ -135,7 +140,7 @@ Terima kasih atas pembayaran Anda. 🙏`;
                         {data.details.map((d, idx) => (
                             <tr key={idx} className="border-b border-gray-200 border-dashed">
                                 <td className="py-1">
-                                    <div className="font-bold">{formatBulan(d.month, d.year)}</div>
+                                    <div className="font-bold">{mounted ? formatBulan(d.month, d.year) : '...'}</div>
                                     {d.usage > 0 && <div className="text-[9px] text-gray-500">{d.usage} m³</div>}
                                 </td>
                                 <td className="py-1 text-right text-[10px] font-mono">
@@ -203,6 +208,14 @@ Terima kasih atas pembayaran Anda. 🙏`;
                 return "w-[80mm] mx-auto bg-white p-4 border shadow-sm";
         }
     };
+
+    if (!mounted) {
+        return (
+            <div className="min-h-screen bg-slate-100 flex items-center justify-center">
+                <Loader2 className="w-8 h-8 animate-spin text-indigo-600" />
+            </div>
+        );
+    }
 
     return (
         <div className="min-h-screen bg-slate-100 font-sans pb-20">
@@ -290,7 +303,7 @@ Terima kasih atas pembayaran Anda. 🙏`;
                         {/* Tengah: Detail Pelanggan & Tagihan */}
                         <div className="w-[45%] px-4 flex flex-col">
                             <div className="text-[10px] grid grid-cols-[60px_5px_1fr] gap-y-0.5 mb-2">
-                                <div className="text-gray-600">Trx / Tgl</div><div>:</div><div className="font-mono">#{data.transactionId} / {format(new Date(data.paymentDate), 'dd/MM/yy', { locale: localeId })}</div>
+                                <div className="text-gray-600">Trx / Tgl</div><div>:</div><div className="font-mono">#{data.transactionId} / {mounted ? format(new Date(data.paymentDate), 'dd/MM/yy', { locale: localeId }) : '...'}</div>
                                 <div className="text-gray-600">Pelanggan</div><div>:</div><div className="font-bold truncate">{data.customerName}</div>
                                 <div className="text-gray-600">No. Samb.</div><div>:</div><div className="font-mono">{data.customerNumber}</div>
                             </div>
@@ -306,7 +319,7 @@ Terima kasih atas pembayaran Anda. 🙏`;
                                     <tbody>
                                         {data.details.map((d, idx) => (
                                             <tr key={idx}>
-                                                <td>{formatBulan(d.month, d.year)} <span className="text-gray-400">({d.usage}m³)</span></td>
+                                                <td>{mounted ? formatBulan(d.month, d.year) : '...'} <span className="text-gray-400">({d.usage}m³)</span></td>
                                                 <td className="text-right font-mono">{formatRupiah(d.billAmount).replace('Rp', '')}</td>
                                                 <td className="text-right font-mono font-bold">
                                                     <div>{formatRupiah(d.amount).replace('Rp', '')}</div>
