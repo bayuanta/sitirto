@@ -162,15 +162,21 @@ export async function getUnpaidBills(customerId: number): Promise<Bill[]> {
 export async function getTodayStats(): Promise<TodayStats> {
     const supabase = await createClient();
 
-    // Get today's date range (midnight to now)
+    // Get today's date range (midnight to midnight tomorrow)
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const todayISO = today.toISOString();
+    
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const tomorrowISO = tomorrow.toISOString();
 
     const { data, error } = await supabase
         .from("transactions")
-        .select("total_amount, method")
-        .gte("payment_date", todayISO);
+        .select("total_amount, method, notes")
+        .gte("payment_date", todayISO)
+        .lt("payment_date", tomorrowISO)
+        .neq("notes", "Migrasi Data Historis");
 
     if (error) {
         console.error("Error fetching stats:", error);
