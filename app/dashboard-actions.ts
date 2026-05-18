@@ -60,7 +60,8 @@ export async function getUnifiedDashboardData(year: number = new Date().getFullY
         const [
             { count: activeCustomersCount },
             { data: transactions },
-            { data: installationFees }
+            { data: installationFees },
+            paidCountRes
         ] = await Promise.all([
             // Q1: Active Customers Count
             supabase.from("customers").select("*", { count: "exact", head: true }).eq("status", "active"),
@@ -78,7 +79,13 @@ export async function getUnifiedDashboardData(year: number = new Date().getFullY
             supabase.from("installation_fees")
                 .select(`total_amount, paid_amount, customers!inner(status)`)
                 .eq("customers.status", "active")
-                .neq("status", "paid")
+                .neq("status", "paid"),
+                
+            // Q5: Total Paid Count (All Time)
+            supabase.from("meter_records")
+                .select("id, customer:customers!inner(status)", { count: "exact", head: true })
+                .eq("status", "paid")
+                .eq("customer.status", "active")
         ]);
 
         // Helper to fetch all pages for a query
@@ -209,9 +216,13 @@ export async function getUnifiedDashboardData(year: number = new Date().getFullY
             color: t.method === 'cash' ? "bg-emerald-500" : "bg-blue-500"
         }));
 
-        // --- 4. PAYMENT STATUS & CHART (From Meter Records of selected Year) ---
-        let paidCount = 0;
-        let unpaidCount = 0;
+        // --- 4. PAYMENT STATUS (All Time) & CHART (Current Year) ---
+        const allTimePaidCount = paidCountRes.count || 0;
+        const allTimeUnpaidCount = arrearsData.length;
+        const allTimeTotalRec = allTimePaidCount + allTimeUnpaidCount;
+
+        let paidCountYearly = 0;
+        let unpaidCountYearly = 0;
         const monthlyChart = monthsShort.map(m => ({ name: m, total_bill: 0, paid: 0, unpaid: 0 }));
         let totalBillYearly = 0;
         let totalPaidYearlyFromRecords = 0;
@@ -222,8 +233,8 @@ export async function getUnifiedDashboardData(year: number = new Date().getFullY
                 const paid = r.paid_amount || 0;
                 const mIndex = r.month - 1;
 
-                if (r.status === 'paid') paidCount++;
-                else unpaidCount++;
+                if (r.status === 'paid') paidCountYearly++;
+                else unpaidCountYearly++;
 
                 if (mIndex >= 0 && mIndex < 12) {
                     monthlyChart[mIndex].total_bill += bill;
@@ -235,7 +246,6 @@ export async function getUnifiedDashboardData(year: number = new Date().getFullY
             }
         });
 
-        const totalRec = paidCount + unpaidCount;
         const totalPaidYearly = totalPaidYearlyFromRecords; // Chart Summary includes legacy
 
         return {
@@ -257,10 +267,10 @@ export async function getUnifiedDashboardData(year: number = new Date().getFullY
             ],
             activity,
             paymentStatus: {
-                paid: paidCount,
-                unpaid: unpaidCount,
-                total: totalRec,
-                percentage: totalRec > 0 ? Math.round((paidCount / totalRec) * 100) : 0
+                paid: allTimePaidCount,
+                unpaid: allTimeUnpaidCount,
+                total: allTimeTotalRec,
+                percentage: allTimeTotalRec > 0 ? Math.round((allTimePaidCount / allTimeTotalRec) * 100) : 0
             },
             chartData: {
                 monthly: monthlyChart,
