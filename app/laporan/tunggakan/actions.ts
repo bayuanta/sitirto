@@ -189,7 +189,7 @@ export async function getArrearsSummary(dateFilter?: DateRangeFilter) {
         .eq("customer.status", "active"));
 
     if (!records) {
-        console.error("Error fetching arrears summary", error);
+        console.error("Error fetching arrears summary");
         return {
             totalArrears: 0,
             totalCustomers: 0,
