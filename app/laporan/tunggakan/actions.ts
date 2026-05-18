@@ -40,7 +40,8 @@ export async function getUnifiedArrearsData(dateFilter?: DateRangeFilter): Promi
                 )
             `)
             .neq("status", "paid")
-            .eq("customer.status", "active"),
+            .eq("customer.status", "active")
+            .limit(10000),
         supabase.from("areas").select("id, name").order("name")
     ]);
 
@@ -171,7 +172,8 @@ export async function getArrearsSummary(dateFilter?: DateRangeFilter) {
             )
         `)
         .neq("status", "paid")
-        .eq("customer.status", "active");
+        .eq("customer.status", "active")
+        .limit(10000);
 
     if (error || !records) {
         console.error("Error fetching arrears summary", error);
@@ -226,7 +228,8 @@ export async function getArrearsByArea(dateFilter?: DateRangeFilter) {
             )
         `)
         .neq("status", "paid")
-        .eq("customer.status", "active");
+        .eq("customer.status", "active")
+        .limit(10000);
 
     if (error || !records) return [];
 
@@ -267,7 +270,8 @@ export async function getArrearsByAge(dateFilter?: DateRangeFilter) {
         .from("meter_records")
         .select("month, year, bill_amount, paid_amount, customers!inner(status)")
         .neq("status", "paid")
-        .eq("customers.status", "active");
+        .eq("customers.status", "active")
+        .limit(10000);
 
     if (error || !records) return [];
 
@@ -329,7 +333,8 @@ export async function getArrearsDetailList(dateFilter?: DateRangeFilter) {
             )
         `)
         .neq("status", "paid")
-        .eq("customer.status", "active");
+        .eq("customer.status", "active")
+        .limit(10000);
 
     const { data, error } = await query.order("year", { ascending: true }).order("month", { ascending: true });
 
@@ -440,7 +445,8 @@ export async function getTopDebtors(limit: number = 10, dateFilter?: DateRangeFi
             )
         `)
         .neq("status", "paid")
-        .eq("customer.status", "active");
+        .eq("customer.status", "active")
+        .limit(10000);
 
     if (error || !records) return [];
 
