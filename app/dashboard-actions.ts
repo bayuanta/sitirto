@@ -72,7 +72,8 @@ export async function getUnifiedDashboardData(year: number = new Date().getFullY
                 .gte("created_at", `${year}-01-01T00:00:00Z`)
                 .lt("created_at", `${year + 1}-01-01T00:00:00Z`)
                 .neq("notes", "Migrasi Data Historis")
-                .order("created_at", { ascending: false }),
+                .order("created_at", { ascending: false })
+                .limit(10000),
 
             // Q3: Meter Records (Current Year OR Unpaid)
             // Using inner join on customers to filter only active ones
@@ -82,7 +83,8 @@ export async function getUnifiedDashboardData(year: number = new Date().getFullY
                     customer:customers!inner(id, name, status, area:areas(name))
                 `)
                 .or(`year.eq.${year},status.neq.paid`)
-                .eq("customers.status", "active"),
+                .eq("customers.status", "active")
+                .limit(10000),
 
             // Q4: Installation Fees (Unpaid)
             supabase.from("installation_fees")
