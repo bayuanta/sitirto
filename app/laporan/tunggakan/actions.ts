@@ -24,6 +24,21 @@ export type ArrearsData = {
     topDebtors: { id: number; name: string; connectionNumber: string; area: string; totalArrears: number; recordsCount: number }[];
 };
 
+// Helper to fetch all pages for a query
+async function fetchAllPages(baseQuery: any) {
+    let allData: any[] = [];
+    let page = 0;
+    const pageSize = 1000;
+    while (true) {
+        const { data, error } = await baseQuery.range(page * pageSize, (page + 1) * pageSize - 1);
+        if (error || !data || data.length === 0) break;
+        allData.push(...data);
+        if (data.length < pageSize) break;
+        page++;
+    }
+    return allData;
+}
+
 export async function getUnifiedArrearsData(dateFilter?: DateRangeFilter): Promise<ArrearsData> {
     const supabase = await createClient();
     const today = new Date();
@@ -31,7 +46,7 @@ export async function getUnifiedArrearsData(dateFilter?: DateRangeFilter): Promi
     const currentYear = today.getFullYear();
 
     const [recordsRes, areasRes] = await Promise.all([
-        supabase.from("meter_records")
+        fetchAllPages(supabase.from("meter_records")
             .select(`
                 id, month, year, bill_amount, paid_amount, status, usage,
                 customer:customers!inner (
@@ -40,12 +55,11 @@ export async function getUnifiedArrearsData(dateFilter?: DateRangeFilter): Promi
                 )
             `)
             .neq("status", "paid")
-            .eq("customer.status", "active")
-            .limit(10000),
+            .eq("customer.status", "active")),
         supabase.from("areas").select("id, name").order("name")
     ]);
 
-    const records = recordsRes.data || [];
+    const records = recordsRes || [];
     const areas = areasRes.data || [];
 
     // --- 1. INITIALIZE COLLECTIONS ---
@@ -156,7 +170,7 @@ function isInDateRange(month: number, year: number, filter?: DateRangeFilter): b
 export async function getArrearsSummary(dateFilter?: DateRangeFilter) {
     const supabase = await createClient();
 
-    const { data: records, error } = await supabase
+    const records = await fetchAllPages(supabase
         .from("meter_records")
         .select(`
             id,
@@ -172,10 +186,9 @@ export async function getArrearsSummary(dateFilter?: DateRangeFilter) {
             )
         `)
         .neq("status", "paid")
-        .eq("customer.status", "active")
-        .limit(10000);
+        .eq("customer.status", "active"));
 
-    if (error || !records) {
+    if (!records) {
         console.error("Error fetching arrears summary", error);
         return {
             totalArrears: 0,
@@ -215,7 +228,7 @@ export async function getArrearsSummary(dateFilter?: DateRangeFilter) {
 export async function getArrearsByArea(dateFilter?: DateRangeFilter) {
     const supabase = await createClient();
 
-    const { data: records, error } = await supabase
+    const records = await fetchAllPages(supabase
         .from("meter_records")
         .select(`
             month,
@@ -228,10 +241,9 @@ export async function getArrearsByArea(dateFilter?: DateRangeFilter) {
             )
         `)
         .neq("status", "paid")
-        .eq("customer.status", "active")
-        .limit(10000);
+        .eq("customer.status", "active"));
 
-    if (error || !records) return [];
+    if (!records) return [];
 
     const areaMap: Record<string, { amount: number; count: number }> = {};
 
@@ -266,14 +278,13 @@ export async function getArrearsByAge(dateFilter?: DateRangeFilter) {
     const currentMonth = today.getMonth() + 1;
     const currentYear = today.getFullYear();
 
-    const { data: records, error } = await supabase
+    const records = await fetchAllPages(supabase
         .from("meter_records")
         .select("month, year, bill_amount, paid_amount, customers!inner(status)")
         .neq("status", "paid")
-        .eq("customers.status", "active")
-        .limit(10000);
+        .eq("customers.status", "active"));
 
-    if (error || !records) return [];
+    if (!records) return [];
 
     // Calculate months old
     const aging = {
@@ -333,12 +344,11 @@ export async function getArrearsDetailList(dateFilter?: DateRangeFilter) {
             )
         `)
         .neq("status", "paid")
-        .eq("customer.status", "active")
-        .limit(10000);
+        .eq("customer.status", "active");
 
-    const { data, error } = await query.order("year", { ascending: true }).order("month", { ascending: true });
+    const data = await fetchAllPages(query.order("year", { ascending: true }).order("month", { ascending: true }));
 
-    if (error || !data) return [];
+    if (!data) return [];
 
     // Process and group by customer
     const customerMap: Record<string, {
@@ -429,7 +439,7 @@ export async function getAreasList() {
 export async function getTopDebtors(limit: number = 10, dateFilter?: DateRangeFilter) {
     const supabase = await createClient();
 
-    const { data: records, error } = await supabase
+    const records = await fetchAllPages(supabase
         .from("meter_records")
         .select(`
             month,
@@ -445,10 +455,9 @@ export async function getTopDebtors(limit: number = 10, dateFilter?: DateRangeFi
             )
         `)
         .neq("status", "paid")
-        .eq("customer.status", "active")
-        .limit(10000);
+        .eq("customer.status", "active"));
 
-    if (error || !records) return [];
+    if (!records) return [];
 
     const customerMap: Record<string, {
         id: number;

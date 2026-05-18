@@ -60,8 +60,6 @@ export async function getUnifiedDashboardData(year: number = new Date().getFullY
         const [
             { count: activeCustomersCount },
             { data: transactions },
-            { data: unpaidRecords },
-            { data: currentYearRecords },
             { data: installationFees }
         ] = await Promise.all([
             // Q1: Active Customers Count
@@ -76,7 +74,30 @@ export async function getUnifiedDashboardData(year: number = new Date().getFullY
                 .order("created_at", { ascending: false })
                 .limit(10000),
 
-            // Q3a: Unpaid Records (For Arrears Calculation)
+            // Q4: Installation Fees (Unpaid)
+            supabase.from("installation_fees")
+                .select(`total_amount, paid_amount, customers!inner(status)`)
+                .eq("customers.status", "active")
+                .neq("status", "paid")
+        ]);
+
+        // Helper to fetch all pages for a query
+        async function fetchAllPages(baseQuery: any) {
+            let allData: any[] = [];
+            let page = 0;
+            const pageSize = 1000;
+            while (true) {
+                const { data, error } = await baseQuery.range(page * pageSize, (page + 1) * pageSize - 1);
+                if (error || !data || data.length === 0) break;
+                allData.push(...data);
+                if (data.length < pageSize) break;
+                page++;
+            }
+            return allData;
+        }
+
+        // Q3a: Unpaid Records (For Arrears Calculation)
+        const unpaidRecords = await fetchAllPages(
             supabase.from("meter_records")
                 .select(`
                     month, year, status, bill_amount, paid_amount,
@@ -84,9 +105,10 @@ export async function getUnifiedDashboardData(year: number = new Date().getFullY
                 `)
                 .neq("status", "paid")
                 .eq("customers.status", "active")
-                .limit(10000),
+        );
 
-            // Q3b: Current Year Records (For Dashboard Charts & Usage)
+        // Q3b: Current Year Records (For Dashboard Charts & Usage)
+        const currentYearRecords = await fetchAllPages(
             supabase.from("meter_records")
                 .select(`
                     month, year, status, meter_current, meter_last, bill_amount, paid_amount,
@@ -94,14 +116,7 @@ export async function getUnifiedDashboardData(year: number = new Date().getFullY
                 `)
                 .eq("year", year)
                 .eq("customers.status", "active")
-                .limit(10000),
-
-            // Q4: Installation Fees (Unpaid)
-            supabase.from("installation_fees")
-                .select(`total_amount, paid_amount, customers!inner(status)`)
-                .eq("customers.status", "active")
-                .neq("status", "paid")
-        ]);
+        );
 
         const activeCustomers = activeCustomersCount || 0;
         const txs = transactions || [];
