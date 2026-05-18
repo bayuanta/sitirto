@@ -104,7 +104,7 @@ export async function getUnifiedDashboardData(year: number = new Date().getFullY
                     customer:customers!inner(id, name, status, area:areas(name))
                 `)
                 .neq("status", "paid")
-                .eq("customers.status", "active")
+                .eq("customer.status", "active")
         );
 
         // Q3b: Current Year Records (For Dashboard Charts & Usage)
@@ -115,7 +115,7 @@ export async function getUnifiedDashboardData(year: number = new Date().getFullY
                     customer:customers!inner(id, name, status)
                 `)
                 .eq("year", year)
-                .eq("customers.status", "active")
+                .eq("customer.status", "active")
         );
 
         const activeCustomers = activeCustomersCount || 0;
