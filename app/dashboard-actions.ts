@@ -60,7 +60,8 @@ export async function getUnifiedDashboardData(year: number = new Date().getFullY
         const [
             { count: activeCustomersCount },
             { data: transactions },
-            { data: allMeterRecords },
+            { data: unpaidRecords },
+            { data: currentYearRecords },
             { data: installationFees }
         ] = await Promise.all([
             // Q1: Active Customers Count
@@ -75,14 +76,23 @@ export async function getUnifiedDashboardData(year: number = new Date().getFullY
                 .order("created_at", { ascending: false })
                 .limit(10000),
 
-            // Q3: Meter Records (Current Year OR Unpaid)
-            // Using inner join on customers to filter only active ones
+            // Q3a: Unpaid Records (For Arrears Calculation)
+            supabase.from("meter_records")
+                .select(`
+                    month, year, status, bill_amount, paid_amount,
+                    customer:customers!inner(id, name, status, area:areas(name))
+                `)
+                .neq("status", "paid")
+                .eq("customers.status", "active")
+                .limit(10000),
+
+            // Q3b: Current Year Records (For Dashboard Charts & Usage)
             supabase.from("meter_records")
                 .select(`
                     month, year, status, meter_current, meter_last, bill_amount, paid_amount,
-                    customer:customers!inner(id, name, status, area:areas(name))
+                    customer:customers!inner(id, name, status)
                 `)
-                .or(`year.eq.${year},status.neq.paid`)
+                .eq("year", year)
                 .eq("customers.status", "active")
                 .limit(10000),
 
@@ -95,7 +105,8 @@ export async function getUnifiedDashboardData(year: number = new Date().getFullY
 
         const activeCustomers = activeCustomersCount || 0;
         const txs = transactions || [];
-        const records = allMeterRecords || [];
+        const arrearsData = unpaidRecords || [];
+        const currentData = currentYearRecords || [];
 
         // --- 1. KPI STATS & ARREARS ---
         let totalArrears = 0;
@@ -103,29 +114,29 @@ export async function getUnifiedDashboardData(year: number = new Date().getFullY
         let recordedCount = 0;
         const debtMap: Record<number, { id: number, name: string, area: string, amount: number }> = {};
 
-        records.forEach((r: any) => {
+        // Calculate Arrears from purely Unpaid records
+        arrearsData.forEach((r: any) => {
             const bill = r.bill_amount || 0;
             const paid = r.paid_amount || 0;
             const debt = bill - paid;
 
-            // Arrears (Only if status not paid)
-            if (r.status !== 'paid') {
-                totalArrears += debt;
-                
-                // Top Debtors grouping
-                const cid = r.customer.id;
-                if (!debtMap[cid]) {
-                    debtMap[cid] = {
-                        id: cid,
-                        name: r.customer.name,
-                        area: r.customer.area?.name || "-",
-                        amount: 0
-                    };
-                }
-                debtMap[cid].amount += debt;
+            totalArrears += debt;
+            
+            // Top Debtors grouping
+            const cid = r.customer.id;
+            if (!debtMap[cid]) {
+                debtMap[cid] = {
+                    id: cid,
+                    name: r.customer.name,
+                    area: r.customer.area?.name || "-",
+                    amount: 0
+                };
             }
+            debtMap[cid].amount += debt;
+        });
 
-            // Usage & Record Count for Target Month
+        // Calculate Usage & Record Count from Current Year records
+        currentData.forEach((r: any) => {
             if (r.month === targetMonth && r.year === targetYear) {
                 totalUsage += (r.meter_current - r.meter_last);
                 recordedCount++;
@@ -190,7 +201,7 @@ export async function getUnifiedDashboardData(year: number = new Date().getFullY
         let totalBillYearly = 0;
         let totalPaidYearlyFromRecords = 0;
 
-        records.forEach((r: any) => {
+        currentData.forEach((r: any) => {
             if (r.year === year) {
                 const bill = r.bill_amount || 0;
                 const paid = r.paid_amount || 0;
