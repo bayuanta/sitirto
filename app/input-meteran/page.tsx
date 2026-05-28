@@ -378,6 +378,11 @@ export default function InputMeteranPage() {
                 const effectiveMeterLast = meterReplacements[customer.id] ? parseInt(manualMeterLast[customer.id] || "0") : customer.meter_lalu;
                 handleInputChange(customer.id, String(effectiveMeterLast + customer.prev_usage));
             }
+        } else if (e.key === 'Delete') {
+            e.preventDefault();
+            if (!customer.is_saved) {
+                handleInputChange(customer.id, "");
+            }
         }
     };
 
