@@ -27,6 +27,8 @@ import {
     Printer,
     Download
 } from "lucide-react";
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 import * as htmlToImage from 'html-to-image';
 import { MultiPageImageExport, type MultiPageExportHandle } from "@/components/MultiPageImageExport";
 
@@ -121,6 +123,7 @@ export default function InputMeteranPage() {
     const [selectedYear, setSelectedYear] = useState<number>(2026);
     const [mounted, setMounted] = useState(false);
     const [isExporting, setIsExporting] = useState(false);
+    const [exportMode, setExportMode] = useState<'pdf' | 'images' | null>(null);
     const [readyToShareBlobs, setReadyToShareBlobs] = useState<File[]>([]);
     const [showShareDialog, setShowShareDialog] = useState(false);
     const multiExportRef = useRef<MultiPageExportHandle>(null);
@@ -529,16 +532,114 @@ export default function InputMeteranPage() {
         useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
     );
 
-    const handleExportMultiImage = async () => {
-        if (!multiExportRef.current) return;
+    const handleExportPdf = async () => {
         const savedCustomersList = filteredCustomers.filter(c => c.is_saved);
         if (savedCustomersList.length === 0) {
+            toast.error("Belum ada data tagihan untuk dicetak.");
+            return;
+        }
+        try {
+            setIsExporting(true);
+            setExportMode('pdf');
+            toast.loading("Membuat dokumen PDF...", { id: 'export-toast' });
+            await new Promise(resolve => setTimeout(resolve, 300));
+            
+            const doc = new jsPDF('p', 'pt', 'a4');
+            const pageWidth = doc.internal.pageSize.getWidth();
+            
+            // Header
+            doc.setFont("helvetica", "bold");
+            doc.setFontSize(16);
+            doc.text("PAMSIMAS TIRTOWENING", pageWidth / 2, 40, { align: "center" });
+            
+            doc.setFontSize(12);
+            doc.text("DAFTAR TAGIHAN AIR", pageWidth / 2, 60, { align: "center" });
+            
+            doc.setFont("helvetica", "normal");
+            doc.setFontSize(10);
+            doc.text(`Periode: ${MONTHS[selectedMonth - 1]} ${selectedYear}`, pageWidth / 2, 75, { align: "center" });
+            
+            if (selectedGroup !== 'ALL') {
+                 doc.text(`Kelompok: ${selectedGroup}`, pageWidth / 2, 90, { align: "center" });
+            }
+
+            // Prepare Data
+            type CustomerForExport = (typeof savedCustomersList)[0];
+            const grouped = Object.entries(savedCustomersList.reduce((acc, c) => {
+                const area = c.area_name || 'Tanpa Wilayah';
+                if (!acc[area]) acc[area] = [];
+                acc[area].push(c);
+                return acc;
+            }, {} as Record<string, CustomerForExport[]>));
+
+            let finalY = 110;
+
+            for (let i = 0; i < grouped.length; i++) {
+                const [area, areaCustomers] = grouped[i];
+                
+                doc.setFont("helvetica", "bold");
+                doc.setFontSize(10);
+                doc.text(`WILAYAH: ${area.toUpperCase()}`, 40, finalY + 15);
+                
+                const tableData = areaCustomers.map((c, idx) => {
+                    const usage = (c.current_value_if_saved || 0) - c.meter_lalu;
+                    return [
+                        (idx + 1).toString(),
+                        c.no_pelanggan,
+                        c.nama,
+                        `${usage} m³`,
+                        formatRupiah(c.saved_bill_amount || 0).replace('Rp ', '')
+                    ];
+                });
+
+                autoTable(doc, {
+                    startY: finalY + 25,
+                    head: [['NO', 'NO PEL', 'NAMA PELANGGAN', 'PAKAI', 'TAGIHAN (Rp)']],
+                    body: tableData,
+                    theme: 'grid',
+                    headStyles: { fillColor: [30, 41, 59], textColor: 255, fontStyle: 'bold' },
+                    styles: { fontSize: 9, cellPadding: 5 },
+                    columnStyles: {
+                        0: { halign: 'center', cellWidth: 35 },
+                        1: { halign: 'center', cellWidth: 70 },
+                        2: { halign: 'left' },
+                        3: { halign: 'center', cellWidth: 60 },
+                        4: { halign: 'right', cellWidth: 90 },
+                    },
+                    margin: { left: 40, right: 40 }
+                });
+                
+                finalY = (doc as any).lastAutoTable.finalY + 15;
+                
+                if (i < grouped.length - 1 && finalY > doc.internal.pageSize.getHeight() - 100) {
+                    doc.addPage();
+                    finalY = 40;
+                }
+            }
+
+            const fileName = `Tagihan_Air_Kel_${selectedGroup}_${MONTHS[selectedMonth - 1]}_${selectedYear}.pdf`;
+            const blob = doc.output('blob');
+            const file = new File([blob], fileName, { type: 'application/pdf' });
+            setReadyToShareBlobs([file]);
+            setShowShareDialog(true);
+            toast.dismiss('export-toast');
+            
+        } catch (error) {
+            console.error(error);
+            toast.error("Gagal membuat PDF.", { id: 'export-toast' });
+        } finally {
+            setIsExporting(false);
+        }
+    };
+
+    const handleExportMultiImage = async () => {
             toast.error("Belum ada data tagihan untuk dibagikan.");
             return;
         }
 
         try {
             setIsExporting(true);
+            setExportMode('images');
             toast.loading("Menyiapkan album gambar (Multi-Page)...", { id: 'export-toast' });
             
             // Allow React to render the hidden MultiPageImageExport fully
@@ -610,11 +711,19 @@ export default function InputMeteranPage() {
                             CETAK FORM KOSONG
                         </Button>
                         <Button 
+                            onClick={handleExportPdf}
+                            disabled={isExporting || customers.filter(c => c.is_saved).length === 0}
+                            className="w-full sm:w-auto h-11 md:h-10 px-6 rounded-xl md:rounded-full bg-slate-50 text-slate-700 hover:bg-slate-100 border border-slate-200 font-black text-xs gap-2 shadow-sm"
+                        >
+                            {isExporting && exportMode === 'pdf' ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+                            DOWNLOAD PDF
+                        </Button>
+                        <Button 
                             onClick={handleExportMultiImage}
                             disabled={isExporting || customers.filter(c => c.is_saved).length === 0}
                             className="w-full sm:w-auto h-11 md:h-10 px-6 rounded-xl md:rounded-full bg-indigo-50 text-indigo-700 hover:bg-indigo-100 border border-indigo-100 font-black text-xs gap-2 shadow-sm"
                         >
-                            {isExporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Share2 className="h-4 w-4" />}
+                            {isExporting && exportMode === 'images' ? <Loader2 className="h-4 w-4 animate-spin" /> : <Share2 className="h-4 w-4" />}
                             BAGIKAN ALBUM TAGIHAN
                         </Button>
                     </div>
@@ -1034,9 +1143,13 @@ export default function InputMeteranPage() {
                             <CheckCircle2 className="h-8 w-8" />
                         </div>
                         <DialogHeader>
-                            <DialogTitle className="text-xl font-black text-slate-900 text-center">Album Gambar Siap!</DialogTitle>
+                            <DialogTitle className="text-xl font-black text-slate-900 text-center">
+                                {exportMode === 'pdf' ? 'Dokumen PDF Siap!' : 'Album Gambar Siap!'}
+                            </DialogTitle>
                             <DialogDescription className="text-center font-medium text-slate-500 mt-2">
-                                {readyToShareBlobs.length} gambar tagihan berhasil dibuat. Silakan klik tombol di bawah ini untuk mengirimkannya sekaligus:
+                                {exportMode === 'pdf' 
+                                    ? 'Dokumen PDF tagihan berhasil dibuat dan siap dikirim atau disimpan.' 
+                                    : `${readyToShareBlobs.length} gambar tagihan berhasil dibuat. Silakan klik tombol di bawah ini untuk mengirimkannya sekaligus:`}
                             </DialogDescription>
                         </DialogHeader>
                         
