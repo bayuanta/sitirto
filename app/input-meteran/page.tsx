@@ -633,6 +633,9 @@ export default function InputMeteranPage() {
     };
 
     const handleExportMultiImage = async () => {
+        if (!multiExportRef.current) return;
+        const savedCustomersList = filteredCustomers.filter(c => c.is_saved);
+        if (savedCustomersList.length === 0) {
             toast.error("Belum ada data tagihan untuk dibagikan.");
             return;
         }
