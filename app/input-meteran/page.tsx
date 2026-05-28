@@ -17,6 +17,25 @@ import {
     Pencil,
     RotateCcw,
     Settings,
+"use client";
+
+import { useEffect, useState, useRef } from "react";
+import { toast } from "sonner";
+import {
+    Search,
+    Check,
+    Save,
+    Calendar,
+    AlertCircle,
+    Loader2,
+    ChevronLeft,
+    ChevronRight,
+    ChevronDown,
+    CalendarRange,
+    Filter,
+    Pencil,
+    RotateCcw,
+    Settings,
     GripVertical,
     MapPin,
     Share2, 
@@ -121,6 +140,8 @@ export default function InputMeteranPage() {
     const [selectedYear, setSelectedYear] = useState<number>(2026);
     const [mounted, setMounted] = useState(false);
     const [isExporting, setIsExporting] = useState(false);
+    const [readyToShareBlob, setReadyToShareBlob] = useState<{ blob: Blob, fileName: string } | null>(null);
+    const [showShareDialog, setShowShareDialog] = useState(false);
 
     // GROUP-BASED STATE
     const [selectedGroup, setSelectedGroup] = useState<'A' | 'B' | 'ALL'>('A');
@@ -612,8 +633,10 @@ export default function InputMeteranPage() {
             }
 
             const fileName = `Tagihan_Air_Kel_${selectedGroup}_${MONTHS[selectedMonth - 1]}_${selectedYear}.pdf`;
-            doc.save(fileName);
-            toast.success("PDF berhasil diunduh!", { id: 'export-toast' });
+            const blob = doc.output('blob');
+            setReadyToShareBlob({ blob, fileName });
+            setShowShareDialog(true);
+            toast.dismiss('export-toast');
             
         } catch (error) {
             console.error(error);
@@ -1067,6 +1090,61 @@ export default function InputMeteranPage() {
                             <Button variant="ghost" onClick={() => setShowRouteEditor(false)}>Batal</Button>
                             <Button onClick={handleSaveRouteOrder} className="bg-indigo-600 hover:bg-indigo-700 font-bold">
                                 Simpan Urutan Baru
+                            </Button>
+                        </div>
+                    </DialogContent>
+                </Dialog>
+
+                {/* Share Dialog */}
+                <Dialog open={showShareDialog} onOpenChange={setShowShareDialog}>
+                    <DialogContent className="sm:max-w-[400px] rounded-3xl p-6 text-center flex flex-col items-center">
+                        <div className="h-16 w-16 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mb-4">
+                            <CheckCircle2 className="h-8 w-8" />
+                        </div>
+                        <DialogHeader>
+                            <DialogTitle className="text-xl font-black text-slate-900 text-center">Dokumen PDF Siap!</DialogTitle>
+                            <DialogDescription className="text-center font-medium text-slate-500 mt-2">
+                                Dokumen PDF tagihan berhasil dibuat dan siap dikirim. Silakan klik tombol di bawah ini:
+                            </DialogDescription>
+                        </DialogHeader>
+                        
+                        <div className="flex flex-col gap-3 w-full mt-6">
+                            <Button 
+                                onClick={async () => {
+                                    if (!readyToShareBlob) return;
+                                    const file = new File([readyToShareBlob.blob], readyToShareBlob.fileName, { type: 'application/pdf' });
+                                    if (navigator && navigator.share) {
+                                        try {
+                                            await navigator.share({ title: 'Tagihan Pamsimas', files: [file] });
+                                            setShowShareDialog(false);
+                                        } catch (e: any) {
+                                            if (e.name !== 'AbortError') {
+                                                toast.error("Browser tidak mendukung share langsung, silakan gunakan tombol Download.");
+                                            }
+                                        }
+                                    } else {
+                                        toast.error("Browser Anda tidak mendukung fitur share ini.");
+                                    }
+                                }}
+                                className="w-full h-12 rounded-xl bg-[#25D366] hover:bg-[#128C7E] text-white font-bold text-sm shadow-md"
+                            >
+                                <Share2 className="h-5 w-5 mr-2" /> Bagikan via WhatsApp
+                            </Button>
+                            <Button 
+                                variant="outline"
+                                onClick={() => {
+                                    if (!readyToShareBlob) return;
+                                    const url = URL.createObjectURL(readyToShareBlob.blob);
+                                    const link = document.createElement('a');
+                                    link.download = readyToShareBlob.fileName;
+                                    link.href = url;
+                                    link.click();
+                                    URL.revokeObjectURL(url);
+                                    setShowShareDialog(false);
+                                }}
+                                className="w-full h-12 rounded-xl border-slate-200 text-slate-700 font-bold text-sm hover:bg-slate-50"
+                            >
+                                <Save className="h-4 w-4 mr-2" /> Simpan ke Perangkat (Download)
                             </Button>
                         </div>
                     </DialogContent>
