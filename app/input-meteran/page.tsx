@@ -120,7 +120,7 @@ export default function InputMeteranPage() {
     const [selectedYear, setSelectedYear] = useState<number>(2026);
     const [mounted, setMounted] = useState(false);
     const [isExporting, setIsExporting] = useState(false);
-    const exportRef = useRef<HTMLDivElement>(null);
+    const exportRefs = useRef<(HTMLDivElement | null)[]>([]);
 
     // GROUP-BASED STATE
     const [selectedGroup, setSelectedGroup] = useState<'A' | 'B' | 'ALL'>('A');
@@ -527,7 +527,7 @@ export default function InputMeteranPage() {
     );
 
     const handleExportImage = async () => {
-        if (!exportRef.current) return;
+        if (exportRefs.current.length === 0 || !exportRefs.current[0]) return;
         const hasSaved = filteredCustomers.some(c => c.is_saved);
         if (!hasSaved) {
             toast.error("Belum ada data tagihan untuk dibagikan.");
@@ -535,29 +535,52 @@ export default function InputMeteranPage() {
         }
         try {
             setIsExporting(true);
-            toast.loading("Menyiapkan gambar...", { id: 'export-toast' });
+            const totalParts = exportRefs.current.filter(Boolean).length;
+            toast.loading(`Menyiapkan ${totalParts > 1 ? totalParts + ' gambar berseri' : 'gambar'}...`, { id: 'export-toast' });
             await new Promise(resolve => setTimeout(resolve, 500));
-            const savedCount = filteredCustomers.filter(c => c.is_saved).length;
-            const isMassiveList = savedCount > 80;
-            const dataUrl = await htmlToImage.toJpeg(exportRef.current, { 
-                quality: isMassiveList ? 0.8 : 0.95, 
-                backgroundColor: '#ffffff', 
-                pixelRatio: isMassiveList ? 1 : 2 
-            });
-            if (navigator && navigator.share) {
+            
+            const files: File[] = [];
+            for (let i = 0; i < exportRefs.current.length; i++) {
+                const el = exportRefs.current[i];
+                if (!el) continue;
+                // Since we chunked the list, we can safely use high quality and pixelRatio: 2 again
+                const dataUrl = await htmlToImage.toJpeg(el, { quality: 0.95, backgroundColor: '#ffffff', pixelRatio: 2 });
                 const blob = await (await fetch(dataUrl)).blob();
-                const file = new File([blob], `Tagihan_Kel_${selectedGroup}.jpg`, { type: 'image/jpeg' });
-                await navigator.share({ title: 'Tagihan Pamsimas', files: [file] });
-                toast.success("Gambar dibagikan!", { id: 'export-toast' });
+                files.push(new File([blob], `Tagihan_Kel_${selectedGroup}${totalParts > 1 ? `_Part_${i+1}` : ''}.jpg`, { type: 'image/jpeg' }));
+            }
+
+            const downloadAllFiles = () => {
+                files.forEach((file, idx) => {
+                    setTimeout(() => {
+                        const url = URL.createObjectURL(file);
+                        const link = document.createElement('a');
+                        link.download = file.name;
+                        link.href = url;
+                        link.click();
+                        URL.revokeObjectURL(url);
+                    }, idx * 300); // Stagger downloads slightly to prevent browser blocking
+                });
+                toast.success(`Berhasil mengunduh ${files.length} gambar!`, { id: 'export-toast' });
+            };
+            
+            if (navigator && navigator.canShare && navigator.canShare({ files })) {
+                try {
+                    await navigator.share({ title: 'Tagihan Pamsimas', files: files });
+                    toast.success("Gambar berhasil dibagikan!", { id: 'export-toast' });
+                } catch(e: any) {
+                    // User canceled or share failed, fallback to download
+                    if (e.name !== 'AbortError') {
+                        downloadAllFiles();
+                    } else {
+                        toast.dismiss('export-toast');
+                    }
+                }
             } else {
-                const link = document.createElement('a');
-                link.download = `Tagihan_Kel_${selectedGroup}.jpg`;
-                link.href = dataUrl;
-                link.click();
-                toast.success("Gambar diunduh!", { id: 'export-toast' });
+                downloadAllFiles();
             }
         } catch (error) {
-            toast.error("Gagal export gambar.", { id: 'export-toast' });
+            console.error(error);
+            toast.error("Gagal export gambar. Coba muat ulang halaman.", { id: 'export-toast' });
         } finally {
             setIsExporting(false);
         }
@@ -576,14 +599,42 @@ export default function InputMeteranPage() {
         <TooltipProvider>
             <div className="bg-white rounded-[20px] border border-slate-200/60 shadow-sm p-6 min-h-[80vh] flex flex-col relative pb-24">
                 
-                <TagihanImageExport 
-                    ref={exportRef}
-                    month={selectedMonth}
-                    year={selectedYear}
-                    group={selectedGroup}
-                    areaName={selectedArea === 'ALL' ? 'Semua' : (areas.find(a => a.id.toString() === selectedArea)?.name || 'Semua')}
-                    customers={filteredCustomers as any}
-                />
+                <div className="fixed -left-[9999px] top-0 pointer-events-none z-0 flex items-start gap-8">
+                    {(() => {
+                        const savedCustomersList = filteredCustomers.filter(c => c.is_saved);
+                        const chunkSize = 60;
+                        const chunkedCustomers: any[] = [];
+                        for (let i = 0; i < savedCustomersList.length; i += chunkSize) {
+                            chunkedCustomers.push(savedCustomersList.slice(i, i + chunkSize));
+                        }
+                        
+                        // Always render at least one to prevent hook/ref errors, even if empty
+                        if (chunkedCustomers.length === 0) {
+                            return (
+                                <TagihanImageExport 
+                                    ref={(el) => { exportRefs.current[0] = el; }}
+                                    month={selectedMonth}
+                                    year={selectedYear}
+                                    group={selectedGroup}
+                                    areaName={selectedArea === 'ALL' ? 'Semua' : (areas.find(a => a.id.toString() === selectedArea)?.name || 'Semua')}
+                                    customers={[]}
+                                />
+                            );
+                        }
+
+                        return chunkedCustomers.map((chunk, i) => (
+                            <TagihanImageExport 
+                                key={i}
+                                ref={(el) => { exportRefs.current[i] = el; }}
+                                month={selectedMonth}
+                                year={selectedYear}
+                                group={`${selectedGroup}${chunkedCustomers.length > 1 ? ` (Bagian ${i+1}/${chunkedCustomers.length})` : ''}`}
+                                areaName={selectedArea === 'ALL' ? 'Semua' : (areas.find(a => a.id.toString() === selectedArea)?.name || 'Semua')}
+                                customers={chunk as any}
+                            />
+                        ));
+                    })()}
+                </div>
 
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-4">
                     <div className="flex-1 w-full md:w-auto">
