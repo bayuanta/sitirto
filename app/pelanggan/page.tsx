@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useMemo, useRef, Suspense } from "react";
+import { useEffect, useState, useMemo, useRef, Suspense, useDeferredValue } from "react";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { toast } from "sonner";
 import * as htmlToImage from 'html-to-image';
@@ -118,7 +118,8 @@ function PelangganPageContent() {
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [isEditMode, setIsEditMode] = useState(false);
     const [editingCustomerData, setEditingCustomerData] = useState<CustomerData | null>(null);
-    const [globalFilter, setGlobalFilter] = useState("");
+    const [searchValue, setSearchValue] = useState("");
+    const deferredGlobalFilter = useDeferredValue(searchValue);
     const [selectedAreaId, setSelectedAreaId] = useState<number | 'all'>('all');
     const [selectedStatus, setSelectedStatus] = useState<string>('all');
     const [selectedInstallStatus, setSelectedInstallStatus] = useState<string>('all');
@@ -346,8 +347,8 @@ function PelangganPageContent() {
         getCoreRowModel: getCoreRowModel(),
         getFilteredRowModel: getFilteredRowModel(),
         getPaginationRowModel: getPaginationRowModel(),
-        state: { globalFilter },
-        onGlobalFilterChange: setGlobalFilter,
+        state: { globalFilter: deferredGlobalFilter },
+        onGlobalFilterChange: setSearchValue,
         initialState: { pagination: { pageSize: 8 } },
     });
 
@@ -537,8 +538,8 @@ function PelangganPageContent() {
                             name="search-pelanggan"
                             placeholder="Cari pelanggan..."
                             className="pl-10 h-10 rounded-full bg-slate-50 border-0 focus-visible:ring-1 focus-visible:ring-indigo-500 font-medium text-xs w-full"
-                            value={globalFilter ?? ""}
-                            onChange={(e) => setGlobalFilter(e.target.value)}
+                            value={searchValue}
+                            onChange={(e) => setSearchValue(e.target.value)}
                         />
                     </div>
 
