@@ -27,8 +27,8 @@ import {
     Printer,
     Download
 } from "lucide-react";
-import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable';
+import * as htmlToImage from 'html-to-image';
+import { MultiPageImageExport, type MultiPageExportHandle } from "@/components/MultiPageImageExport";
 
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -121,8 +121,9 @@ export default function InputMeteranPage() {
     const [selectedYear, setSelectedYear] = useState<number>(2026);
     const [mounted, setMounted] = useState(false);
     const [isExporting, setIsExporting] = useState(false);
-    const [readyToShareBlob, setReadyToShareBlob] = useState<{ blob: Blob, fileName: string } | null>(null);
+    const [readyToShareBlobs, setReadyToShareBlobs] = useState<File[]>([]);
     const [showShareDialog, setShowShareDialog] = useState(false);
+    const multiExportRef = useRef<MultiPageExportHandle>(null);
 
     // GROUP-BASED STATE
     const [selectedGroup, setSelectedGroup] = useState<'A' | 'B' | 'ALL'>('A');
@@ -528,100 +529,43 @@ export default function InputMeteranPage() {
         useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
     );
 
-    const handleExportPdf = async () => {
+    const handleExportMultiImage = async () => {
+        if (!multiExportRef.current) return;
         const savedCustomersList = filteredCustomers.filter(c => c.is_saved);
         if (savedCustomersList.length === 0) {
-            toast.error("Belum ada data tagihan untuk dicetak.");
+            toast.error("Belum ada data tagihan untuk dibagikan.");
             return;
         }
+
         try {
             setIsExporting(true);
-            toast.loading("Membuat dokumen PDF...", { id: 'export-toast' });
-            await new Promise(resolve => setTimeout(resolve, 300));
+            toast.loading("Menyiapkan album gambar (Multi-Page)...", { id: 'export-toast' });
             
-            const doc = new jsPDF('p', 'pt', 'a4');
-            const pageWidth = doc.internal.pageSize.getWidth();
+            // Allow React to render the hidden MultiPageImageExport fully
+            await new Promise(resolve => setTimeout(resolve, 800));
             
-            // Header
-            doc.setFont("helvetica", "bold");
-            doc.setFontSize(16);
-            doc.text("PAMSIMAS TIRTOWENING", pageWidth / 2, 40, { align: "center" });
-            
-            doc.setFontSize(12);
-            doc.text("DAFTAR TAGIHAN AIR", pageWidth / 2, 60, { align: "center" });
-            
-            doc.setFont("helvetica", "normal");
-            doc.setFontSize(10);
-            doc.text(`Periode: ${MONTHS[selectedMonth - 1]} ${selectedYear}`, pageWidth / 2, 75, { align: "center" });
-            
-            if (selectedGroup !== 'ALL') {
-                 doc.text(`Kelompok: ${selectedGroup}`, pageWidth / 2, 90, { align: "center" });
+            const pageElements = multiExportRef.current.getPageRefs();
+            if (pageElements.length === 0) {
+                throw new Error("Gagal mengambil referensi halaman");
             }
 
-            // Prepare Data
-            type CustomerForExport = (typeof savedCustomersList)[0];
-            const grouped = Object.entries(savedCustomersList.reduce((acc, c) => {
-                const area = c.area_name || 'Tanpa Wilayah';
-                if (!acc[area]) acc[area] = [];
-                acc[area].push(c);
-                return acc;
-            }, {} as Record<string, CustomerForExport[]>));
+            const files: File[] = [];
 
-            let finalY = 110;
-
-            for (let i = 0; i < grouped.length; i++) {
-                const [area, areaCustomers] = grouped[i];
-                
-                doc.setFont("helvetica", "bold");
-                doc.setFontSize(10);
-                doc.text(`WILAYAH: ${area.toUpperCase()}`, 40, finalY + 15);
-                
-                const tableData = areaCustomers.map((c, idx) => {
-                    const usage = (c.current_value_if_saved || 0) - c.meter_lalu;
-                    return [
-                        (idx + 1).toString(),
-                        c.no_pelanggan,
-                        c.nama,
-                        `${usage} m³`,
-                        formatRupiah(c.saved_bill_amount || 0).replace('Rp ', '')
-                    ];
-                });
-
-                autoTable(doc, {
-                    startY: finalY + 25,
-                    head: [['NO', 'NO PEL', 'NAMA PELANGGAN', 'PAKAI', 'TAGIHAN (Rp)']],
-                    body: tableData,
-                    theme: 'grid',
-                    headStyles: { fillColor: [30, 41, 59], textColor: 255, fontStyle: 'bold' },
-                    styles: { fontSize: 9, cellPadding: 5 },
-                    columnStyles: {
-                        0: { halign: 'center', cellWidth: 35 },
-                        1: { halign: 'center', cellWidth: 70 },
-                        2: { halign: 'left' },
-                        3: { halign: 'center', cellWidth: 60 },
-                        4: { halign: 'right', cellWidth: 90 },
-                    },
-                    margin: { left: 40, right: 40 }
-                });
-                
-                finalY = (doc as any).lastAutoTable.finalY + 15;
-                
-                // Add page break if next area won't fit well
-                if (i < grouped.length - 1 && finalY > doc.internal.pageSize.getHeight() - 100) {
-                    doc.addPage();
-                    finalY = 40;
-                }
+            for (let i = 0; i < pageElements.length; i++) {
+                const el = pageElements[i];
+                const dataUrl = await htmlToImage.toJpeg(el, { quality: 0.9, backgroundColor: '#ffffff', pixelRatio: 2 });
+                const blob = await (await fetch(dataUrl)).blob();
+                const fileName = `Tagihan_${selectedGroup}_Part${i + 1}.jpg`;
+                files.push(new File([blob], fileName, { type: 'image/jpeg' }));
             }
-
-            const fileName = `Tagihan_Air_Kel_${selectedGroup}_${MONTHS[selectedMonth - 1]}_${selectedYear}.pdf`;
-            const blob = doc.output('blob');
-            setReadyToShareBlob({ blob, fileName });
+            
+            setReadyToShareBlobs(files);
             setShowShareDialog(true);
             toast.dismiss('export-toast');
             
         } catch (error) {
             console.error(error);
-            toast.error("Gagal membuat PDF.", { id: 'export-toast' });
+            toast.error("Gagal export gambar. Coba muat ulang halaman.", { id: 'export-toast' });
         } finally {
             setIsExporting(false);
         }
@@ -638,6 +582,13 @@ export default function InputMeteranPage() {
 
     return (
         <TooltipProvider>
+            <MultiPageImageExport 
+                ref={multiExportRef}
+                month={selectedMonth}
+                year={selectedYear}
+                group={selectedGroup}
+                customers={filteredCustomers.filter(c => c.is_saved) as any}
+            />
             <div className="bg-white rounded-[20px] border border-slate-200/60 shadow-sm p-6 min-h-[80vh] flex flex-col relative pb-24">
                 
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-4">
@@ -659,12 +610,12 @@ export default function InputMeteranPage() {
                             CETAK FORM KOSONG
                         </Button>
                         <Button 
-                            onClick={handleExportPdf}
+                            onClick={handleExportMultiImage}
                             disabled={isExporting || customers.filter(c => c.is_saved).length === 0}
                             className="w-full sm:w-auto h-11 md:h-10 px-6 rounded-xl md:rounded-full bg-indigo-50 text-indigo-700 hover:bg-indigo-100 border border-indigo-100 font-black text-xs gap-2 shadow-sm"
                         >
-                            {isExporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
-                            DOWNLOAD PDF TAGIHAN
+                            {isExporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Share2 className="h-4 w-4" />}
+                            BAGIKAN ALBUM TAGIHAN
                         </Button>
                     </div>
                 </div>
@@ -1083,24 +1034,23 @@ export default function InputMeteranPage() {
                             <CheckCircle2 className="h-8 w-8" />
                         </div>
                         <DialogHeader>
-                            <DialogTitle className="text-xl font-black text-slate-900 text-center">Dokumen PDF Siap!</DialogTitle>
+                            <DialogTitle className="text-xl font-black text-slate-900 text-center">Album Gambar Siap!</DialogTitle>
                             <DialogDescription className="text-center font-medium text-slate-500 mt-2">
-                                Dokumen PDF tagihan berhasil dibuat dan siap dikirim. Silakan klik tombol di bawah ini:
+                                {readyToShareBlobs.length} gambar tagihan berhasil dibuat. Silakan klik tombol di bawah ini untuk mengirimkannya sekaligus:
                             </DialogDescription>
                         </DialogHeader>
                         
                         <div className="flex flex-col gap-3 w-full mt-6">
                             <Button 
                                 onClick={async () => {
-                                    if (!readyToShareBlob) return;
-                                    const file = new File([readyToShareBlob.blob], readyToShareBlob.fileName, { type: 'application/pdf' });
+                                    if (readyToShareBlobs.length === 0) return;
                                     if (navigator && navigator.share) {
                                         try {
-                                            await navigator.share({ title: 'Tagihan Pamsimas', files: [file] });
+                                            await navigator.share({ title: 'Tagihan Pamsimas', files: readyToShareBlobs });
                                             setShowShareDialog(false);
                                         } catch (e: any) {
                                             if (e.name !== 'AbortError') {
-                                                toast.error("Browser tidak mendukung share langsung, silakan gunakan tombol Download.");
+                                                toast.error("Browser tidak mendukung share massal, silakan gunakan tombol Download.");
                                             }
                                         }
                                     } else {
@@ -1114,13 +1064,17 @@ export default function InputMeteranPage() {
                             <Button 
                                 variant="outline"
                                 onClick={() => {
-                                    if (!readyToShareBlob) return;
-                                    const url = URL.createObjectURL(readyToShareBlob.blob);
-                                    const link = document.createElement('a');
-                                    link.download = readyToShareBlob.fileName;
-                                    link.href = url;
-                                    link.click();
-                                    URL.revokeObjectURL(url);
+                                    if (readyToShareBlobs.length === 0) return;
+                                    readyToShareBlobs.forEach((file, idx) => {
+                                        setTimeout(() => {
+                                            const url = URL.createObjectURL(file);
+                                            const link = document.createElement('a');
+                                            link.download = file.name;
+                                            link.href = url;
+                                            link.click();
+                                            URL.revokeObjectURL(url);
+                                        }, idx * 500);
+                                    });
                                     setShowShareDialog(false);
                                 }}
                                 className="w-full h-12 rounded-xl border-slate-200 text-slate-700 font-bold text-sm hover:bg-slate-50"
