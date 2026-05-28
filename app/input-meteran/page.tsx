@@ -24,10 +24,11 @@ import {
     AlertTriangle,
     Droplets,
     CheckCircle2,
-    Printer
+    Printer,
+    Download
 } from "lucide-react";
-import * as htmlToImage from 'html-to-image';
-import { TagihanImageExport } from "@/components/TagihanImageExport";
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -120,9 +121,6 @@ export default function InputMeteranPage() {
     const [selectedYear, setSelectedYear] = useState<number>(2026);
     const [mounted, setMounted] = useState(false);
     const [isExporting, setIsExporting] = useState(false);
-    const exportRef = useRef<HTMLDivElement>(null);
-    const [readyToShareBlob, setReadyToShareBlob] = useState<{ blob: Blob, fileName: string } | null>(null);
-    const [showShareDialog, setShowShareDialog] = useState(false);
 
     // GROUP-BASED STATE
     const [selectedGroup, setSelectedGroup] = useState<'A' | 'B' | 'ALL'>('A');
@@ -528,30 +526,98 @@ export default function InputMeteranPage() {
         useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
     );
 
-    const handleExportImage = async () => {
-        if (!exportRef.current) return;
-        const hasSaved = filteredCustomers.some(c => c.is_saved);
-        if (!hasSaved) {
-            toast.error("Belum ada data tagihan untuk dibagikan.");
+    const handleExportPdf = async () => {
+        const savedCustomersList = filteredCustomers.filter(c => c.is_saved);
+        if (savedCustomersList.length === 0) {
+            toast.error("Belum ada data tagihan untuk dicetak.");
             return;
         }
         try {
             setIsExporting(true);
-            toast.loading("Menyiapkan gambar tagihan...", { id: 'export-toast' });
-            await new Promise(resolve => setTimeout(resolve, 500));
+            toast.loading("Membuat dokumen PDF...", { id: 'export-toast' });
+            await new Promise(resolve => setTimeout(resolve, 300));
             
-            // Generate single image from the new poster layout
-            const dataUrl = await htmlToImage.toJpeg(exportRef.current, { quality: 0.9, backgroundColor: '#ffffff', pixelRatio: 2 });
-            const blob = await (await fetch(dataUrl)).blob();
-            const fileName = `Tagihan_Kel_${selectedGroup}.jpg`;
+            const doc = new jsPDF('p', 'pt', 'a4');
+            const pageWidth = doc.internal.pageSize.getWidth();
             
-            setReadyToShareBlob({ blob, fileName });
-            setShowShareDialog(true);
-            toast.dismiss('export-toast');
+            // Header
+            doc.setFont("helvetica", "bold");
+            doc.setFontSize(16);
+            doc.text("PAMSIMAS TIRTOWENING", pageWidth / 2, 40, { align: "center" });
+            
+            doc.setFontSize(12);
+            doc.text("DAFTAR TAGIHAN AIR", pageWidth / 2, 60, { align: "center" });
+            
+            doc.setFont("helvetica", "normal");
+            doc.setFontSize(10);
+            doc.text(`Periode: ${MONTHS[selectedMonth - 1]} ${selectedYear}`, pageWidth / 2, 75, { align: "center" });
+            
+            if (selectedGroup !== 'ALL') {
+                 doc.text(`Kelompok: ${selectedGroup}`, pageWidth / 2, 90, { align: "center" });
+            }
+
+            // Prepare Data
+            type CustomerForExport = (typeof savedCustomersList)[0];
+            const grouped = Object.entries(savedCustomersList.reduce((acc, c) => {
+                const area = c.area_name || 'Tanpa Wilayah';
+                if (!acc[area]) acc[area] = [];
+                acc[area].push(c);
+                return acc;
+            }, {} as Record<string, CustomerForExport[]>));
+
+            let finalY = 110;
+
+            for (let i = 0; i < grouped.length; i++) {
+                const [area, areaCustomers] = grouped[i];
+                
+                doc.setFont("helvetica", "bold");
+                doc.setFontSize(10);
+                doc.text(`WILAYAH: ${area.toUpperCase()}`, 40, finalY + 15);
+                
+                const tableData = areaCustomers.map((c, idx) => {
+                    const usage = (c.current_value_if_saved || 0) - c.meter_lalu;
+                    return [
+                        (idx + 1).toString(),
+                        c.no_pelanggan,
+                        c.nama,
+                        `${usage} m³`,
+                        formatRupiah(c.saved_bill_amount || 0).replace('Rp ', '')
+                    ];
+                });
+
+                autoTable(doc, {
+                    startY: finalY + 25,
+                    head: [['NO', 'NO PEL', 'NAMA PELANGGAN', 'PAKAI', 'TAGIHAN (Rp)']],
+                    body: tableData,
+                    theme: 'grid',
+                    headStyles: { fillColor: [30, 41, 59], textColor: 255, fontStyle: 'bold' },
+                    styles: { fontSize: 9, cellPadding: 5 },
+                    columnStyles: {
+                        0: { halign: 'center', cellWidth: 35 },
+                        1: { halign: 'center', cellWidth: 70 },
+                        2: { halign: 'left' },
+                        3: { halign: 'center', cellWidth: 60 },
+                        4: { halign: 'right', cellWidth: 90 },
+                    },
+                    margin: { left: 40, right: 40 }
+                });
+                
+                finalY = (doc as any).lastAutoTable.finalY + 15;
+                
+                // Add page break if next area won't fit well
+                if (i < grouped.length - 1 && finalY > doc.internal.pageSize.getHeight() - 100) {
+                    doc.addPage();
+                    finalY = 40;
+                }
+            }
+
+            const fileName = `Tagihan_Air_Kel_${selectedGroup}_${MONTHS[selectedMonth - 1]}_${selectedYear}.pdf`;
+            doc.save(fileName);
+            toast.success("PDF berhasil diunduh!", { id: 'export-toast' });
             
         } catch (error) {
             console.error(error);
-            toast.error("Gagal export gambar. Coba muat ulang halaman.", { id: 'export-toast' });
+            toast.error("Gagal membuat PDF.", { id: 'export-toast' });
         } finally {
             setIsExporting(false);
         }
@@ -570,15 +636,6 @@ export default function InputMeteranPage() {
         <TooltipProvider>
             <div className="bg-white rounded-[20px] border border-slate-200/60 shadow-sm p-6 min-h-[80vh] flex flex-col relative pb-24">
                 
-                <TagihanImageExport 
-                    ref={exportRef}
-                    month={selectedMonth}
-                    year={selectedYear}
-                    group={selectedGroup}
-                    areaName={selectedArea === 'ALL' ? 'Semua' : (areas.find(a => a.id.toString() === selectedArea)?.name || 'Semua')}
-                    customers={filteredCustomers as any}
-                />
-
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-4">
                     <div className="flex-1 w-full md:w-auto">
                         <h1 className="text-xl font-bold text-slate-900 tracking-tight">Pencatatan Meter</h1>
@@ -598,12 +655,12 @@ export default function InputMeteranPage() {
                             CETAK FORM KOSONG
                         </Button>
                         <Button 
-                            onClick={handleExportImage}
+                            onClick={handleExportPdf}
                             disabled={isExporting || customers.filter(c => c.is_saved).length === 0}
                             className="w-full sm:w-auto h-11 md:h-10 px-6 rounded-xl md:rounded-full bg-indigo-50 text-indigo-700 hover:bg-indigo-100 border border-indigo-100 font-black text-xs gap-2 shadow-sm"
                         >
-                            {isExporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Share2 className="h-4 w-4" />}
-                            BAGIKAN TAGIHAN KEL. {mounted ? selectedGroup : "..."}
+                            {isExporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+                            DOWNLOAD PDF TAGIHAN
                         </Button>
                     </div>
                 </div>
@@ -1014,62 +1071,6 @@ export default function InputMeteranPage() {
                         </div>
                     </DialogContent>
                 </Dialog>
-
-                {/* Share Dialog */}
-                <Dialog open={showShareDialog} onOpenChange={setShowShareDialog}>
-                    <DialogContent className="sm:max-w-[400px] rounded-3xl p-6 text-center flex flex-col items-center">
-                        <div className="h-16 w-16 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mb-4">
-                            <CheckCircle2 className="h-8 w-8" />
-                        </div>
-                        <DialogHeader>
-                            <DialogTitle className="text-xl font-black text-slate-900 text-center">Gambar Siap Dibagikan!</DialogTitle>
-                            <DialogDescription className="text-center font-medium text-slate-500 mt-2">
-                                Poster tagihan berhasil dibuat dan siap dikirim. Silakan klik tombol di bawah ini:
-                            </DialogDescription>
-                        </DialogHeader>
-                        
-                        <div className="flex flex-col gap-3 w-full mt-6">
-                            <Button 
-                                onClick={async () => {
-                                    if (!readyToShareBlob) return;
-                                    const file = new File([readyToShareBlob.blob], readyToShareBlob.fileName, { type: 'image/jpeg' });
-                                    if (navigator && navigator.share) {
-                                        try {
-                                            await navigator.share({ title: 'Tagihan Pamsimas', files: [file] });
-                                            setShowShareDialog(false);
-                                        } catch (e: any) {
-                                            if (e.name !== 'AbortError') {
-                                                toast.error("Browser tidak mendukung share langsung, silakan gunakan tombol Download.");
-                                            }
-                                        }
-                                    } else {
-                                        toast.error("Browser Anda tidak mendukung fitur share ini.");
-                                    }
-                                }}
-                                className="w-full h-12 rounded-xl bg-[#25D366] hover:bg-[#128C7E] text-white font-bold text-sm shadow-md"
-                            >
-                                <Share2 className="h-5 w-5 mr-2" /> Bagikan via WhatsApp
-                            </Button>
-                            <Button 
-                                variant="outline"
-                                onClick={() => {
-                                    if (!readyToShareBlob) return;
-                                    const url = URL.createObjectURL(readyToShareBlob.blob);
-                                    const link = document.createElement('a');
-                                    link.download = readyToShareBlob.fileName;
-                                    link.href = url;
-                                    link.click();
-                                    URL.revokeObjectURL(url);
-                                    setShowShareDialog(false);
-                                }}
-                                className="w-full h-12 rounded-xl border-slate-200 text-slate-700 font-bold text-sm hover:bg-slate-50"
-                            >
-                                <Save className="h-4 w-4 mr-2" /> Simpan ke Perangkat (Download)
-                            </Button>
-                        </div>
-                    </DialogContent>
-                </Dialog>
-
             </div>
         </TooltipProvider>
     );
