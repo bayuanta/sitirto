@@ -57,9 +57,9 @@ export function HeroSection() {
 
                         {/* Image 2 (splash) - Behind */}
                         <motion.figure
-                            initial={{ opacity: 0, y: 100 }}
+                            initial={{ opacity: 0, y: 50 }}
                             animate={{ opacity: 1, y: 0 }}
-                            transition={{ duration: 1, delay: 1 }}
+                            transition={{ duration: 0.6, delay: 0.1 }}
                             className="absolute bottom-0"
                             style={{ right: '-220px', zIndex: 1 }}
                         >
@@ -81,9 +81,9 @@ export function HeroSection() {
 
                         {/* Image 1 (Logo) - Front */}
                         <motion.figure
-                            initial={{ opacity: 0, y: 100 }}
+                            initial={{ opacity: 0, y: 50 }}
                             animate={{ opacity: 1, y: 0 }}
-                            transition={{ duration: 1, delay: 1 }}
+                            transition={{ duration: 0.6, delay: 0 }}
                             className="absolute"
                             style={{ right: '-50px', bottom: '180px', zIndex: 2 }}
                         >
@@ -107,9 +107,9 @@ export function HeroSection() {
                     {/* Content Box - Padding 212px top, 240px bottom */}
                     <div className="relative z-[5] max-w-[500px] pt-[250px] pb-[100px] lg:pt-[300px] lg:pb-[240px] text-center lg:text-left mx-auto lg:mx-0">
                         <motion.h2
-                            initial={{ opacity: 0, y: 100 }}
+                            initial={{ opacity: 0, y: 30 }}
                             animate={{ opacity: 1, y: 0 }}
-                            transition={{ duration: 1, delay: 1 }}
+                            transition={{ duration: 0.6, delay: 0 }}
                             className="text-white text-[36px] lg:text-[50px] leading-[1.2] lg:leading-[66px] font-[800] mb-4 lg:mb-[23px]"
                             style={{ fontFamily: "'Spartan', sans-serif" }}
                         >
@@ -117,9 +117,9 @@ export function HeroSection() {
                         </motion.h2>
 
                         <motion.p
-                            initial={{ opacity: 0, y: 100 }}
+                            initial={{ opacity: 0, y: 30 }}
                             animate={{ opacity: 1, y: 0 }}
-                            transition={{ duration: 1, delay: 1.2 }}
+                            transition={{ duration: 0.6, delay: 0.1 }}
                             className="text-white text-[16px] lg:text-[18px] leading-[26px] lg:leading-[30px] mb-8 lg:mb-[42px]"
                         >
                             PAMSIMAS Tirtowening menyediakan layanan air bersih berkualitas untuk
@@ -127,9 +127,9 @@ export function HeroSection() {
                         </motion.p>
 
                         <motion.div
-                            initial={{ opacity: 0, y: 100 }}
+                            initial={{ opacity: 0, y: 30 }}
                             animate={{ opacity: 1, y: 0 }}
-                            transition={{ duration: 1, delay: 1.4 }}
+                            transition={{ duration: 0.6, delay: 0.2 }}
                             className="flex flex-wrap justify-center lg:justify-start gap-4"
                         >
                             <a
