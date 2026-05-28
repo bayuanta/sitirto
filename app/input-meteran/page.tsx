@@ -537,7 +537,13 @@ export default function InputMeteranPage() {
             setIsExporting(true);
             toast.loading("Menyiapkan gambar...", { id: 'export-toast' });
             await new Promise(resolve => setTimeout(resolve, 500));
-            const dataUrl = await htmlToImage.toJpeg(exportRef.current, { quality: 0.95, backgroundColor: '#ffffff', pixelRatio: 2 });
+            const savedCount = filteredCustomers.filter(c => c.is_saved).length;
+            const isMassiveList = savedCount > 80;
+            const dataUrl = await htmlToImage.toJpeg(exportRef.current, { 
+                quality: isMassiveList ? 0.8 : 0.95, 
+                backgroundColor: '#ffffff', 
+                pixelRatio: isMassiveList ? 1 : 2 
+            });
             if (navigator && navigator.share) {
                 const blob = await (await fetch(dataUrl)).blob();
                 const file = new File([blob], `Tagihan_Kel_${selectedGroup}.jpg`, { type: 'image/jpeg' });
