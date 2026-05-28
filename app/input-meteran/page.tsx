@@ -397,26 +397,33 @@ export default function InputMeteranPage() {
         toast.loading(`Menyimpan ${toSave.length} data...`);
         let successCount = 0;
         
-        await Promise.all(toSave.map(async (c) => {
-            const val = inputs[c.id];
-            const effectiveMeterLast = meterReplacements[c.id] ? parseInt(manualMeterLast[c.id] || "0") : c.meter_lalu;
+        const chunkSize = 5;
+        for (let i = 0; i < toSave.length; i += chunkSize) {
+            const chunk = toSave.slice(i, i + chunkSize);
+            
+            await Promise.all(chunk.map(async (c) => {
+                const val = inputs[c.id];
+                const effectiveMeterLast = meterReplacements[c.id] ? parseInt(manualMeterLast[c.id] || "0") : c.meter_lalu;
 
-            const formData = new FormData();
-            formData.append("pelanggan_id", c.id.toString());
-            formData.append("meteran_awal", effectiveMeterLast.toString());
-            formData.append("meteran_akhir", val!);
-            formData.append("bulan", selectedMonth.toString());
-            formData.append("tahun", selectedYear.toString());
-            formData.append("is_replacement", meterReplacements[c.id] ? "true" : "false");
-            formData.append("rate_override", getEffectiveRate(c).toString());
-            formData.append("maintenance_override", getEffectiveMaintenance(c).toString());
+                const formData = new FormData();
+                formData.append("pelanggan_id", c.id.toString());
+                formData.append("meteran_awal", effectiveMeterLast.toString());
+                formData.append("meteran_akhir", val!);
+                formData.append("bulan", selectedMonth.toString());
+                formData.append("tahun", selectedYear.toString());
+                formData.append("is_replacement", meterReplacements[c.id] ? "true" : "false");
+                formData.append("rate_override", getEffectiveRate(c).toString());
+                formData.append("maintenance_override", getEffectiveMaintenance(c).toString());
 
-            const res = await saveMeterRecord(formData);
-            if (!res.error) {
-                successCount++;
-                setCustomers(prev => prev.map(cust => cust.id === c.id ? { ...cust, is_saved: true } : cust));
-            }
-        }));
+                const res = await saveMeterRecord(formData);
+                if (!res.error) {
+                    successCount++;
+                    setCustomers(prev => prev.map(cust => cust.id === c.id ? { ...cust, is_saved: true } : cust));
+                }
+            }));
+            
+            toast.loading(`Menyimpan... (${Math.min(i + chunkSize, toSave.length)}/${toSave.length}) data`);
+        }
 
         toast.dismiss();
         if (successCount > 0) toast.success(`${successCount} data berhasil disimpan!`);
