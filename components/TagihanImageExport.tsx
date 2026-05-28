@@ -23,19 +23,57 @@ interface TagihanImageExportProps {
 
 const monthNames = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
 
+type RenderItem = 
+    | { type: 'area-header', area: string }
+    | { type: 'table-header' }
+    | { type: 'row', data: CustomerForExport, index: number };
+
 export const TagihanImageExport = forwardRef<HTMLDivElement, TagihanImageExportProps>(
     ({ month, year, group, areaName, customers }, ref) => {
         // Only include customers that have been saved
         const savedCustomers = customers.filter(c => c.is_saved);
+
+        const totalCustomers = savedCustomers.length;
+        const numCols = totalCustomers > 160 ? 3 : totalCustomers > 80 ? 2 : 1;
+        const maxRowsPerCol = Math.ceil(totalCustomers / numCols);
+
+        const columnsData: RenderItem[][] = Array.from({ length: numCols }, () => []);
+        let currentColIndex = 0;
+        let rowsInCurrentCol = 0;
+
+        const grouped = Object.entries(savedCustomers.reduce((acc, c) => {
+            const area = c.area_name || 'Tanpa Wilayah';
+            if (!acc[area]) acc[area] = [];
+            acc[area].push(c);
+            return acc;
+        }, {} as Record<string, CustomerForExport[]>));
+
+        for (const [area, areaCustomers] of grouped) {
+            const addHeaders = (colIdx: number, areaName: string) => {
+                columnsData[colIdx].push({ type: 'area-header', area: areaName });
+                columnsData[colIdx].push({ type: 'table-header' });
+            };
+
+            addHeaders(currentColIndex, area);
+
+            for (let i = 0; i < areaCustomers.length; i++) {
+                if (rowsInCurrentCol >= maxRowsPerCol && currentColIndex < numCols - 1) {
+                    currentColIndex++;
+                    rowsInCurrentCol = 0;
+                    addHeaders(currentColIndex, area); // Lanjutan
+                }
+                columnsData[currentColIndex].push({ type: 'row', data: areaCustomers[i], index: i + 1 });
+                rowsInCurrentCol++;
+            }
+        }
 
         return (
             // This container will be kept completely off-screen
             <div className="fixed -left-[9999px] top-0 pointer-events-none z-0">
                 <div 
                     ref={ref}
-                    className="bg-white px-8 py-10 w-[700px] flex flex-col font-sans"
+                    className="bg-white px-8 py-10 flex flex-col font-sans w-max min-w-[700px]"
                     style={{
-                        // Setting a background color ensures the image doesn't have a transparent background
                         backgroundColor: '#ffffff'
                     }}
                 >
@@ -48,42 +86,44 @@ export const TagihanImageExport = forwardRef<HTMLDivElement, TagihanImageExportP
                         </div>
                     </div>
 
-                    {/* Table List */}
+                    {/* Table List (Multi-Column Poster Layout) */}
                     {savedCustomers.length > 0 ? (
-                        <div className="flex flex-col gap-6">
-                            {Object.entries(savedCustomers.reduce((acc, c) => {
-                                const area = c.area_name || 'Tanpa Wilayah';
-                                if (!acc[area]) acc[area] = [];
-                                acc[area].push(c);
-                                return acc;
-                            }, {} as Record<string, CustomerForExport[]>)).map(([area, areaCustomers]) => (
-                                <div key={area} className="flex flex-col">
-                                    {/* Area Header */}
-                                    <div className="bg-slate-100 border-l-4 border-slate-600 px-3 py-1.5 mb-2 rounded-r-md">
-                                        <h3 className="font-black text-slate-800 text-sm tracking-wide uppercase">
-                                            Wilayah: {area}
-                                        </h3>
-                                    </div>
-                                    
-                                    {/* Table Header */}
-                                    <div className="flex font-bold text-[11px] bg-slate-800 text-white p-2 rounded-t-md">
-                                        <div className="w-10 text-center">NO</div>
-                                        <div className="w-24 text-center">NO PEL</div>
-                                        <div className="flex-1">NAMA PELANGGAN</div>
-                                        <div className="w-20 text-center">PAKAI</div>
-                                        <div className="w-32 text-right pr-2">TAGIHAN</div>
-                                    </div>
-                                    
-                                    {/* Table Body */}
-                                    <div className="border border-slate-200 border-t-0 rounded-b-md">
-                                        {areaCustomers.map((c, idx) => {
+                        <div className="flex gap-8 items-start">
+                            {columnsData.map((col, cIdx) => (
+                                <div key={cIdx} className="flex-1 flex flex-col w-[600px]">
+                                    {col.map((item, i) => {
+                                        if (item.type === 'area-header') {
+                                            return (
+                                                <div key={i} className="bg-slate-100 border-l-4 border-slate-600 px-3 py-1.5 mb-2 rounded-r-md mt-4 first:mt-0">
+                                                    <h3 className="font-black text-slate-800 text-sm tracking-wide uppercase">
+                                                        Wilayah: {item.area} {cIdx > 0 && i === 0 ? '(Lanjutan)' : ''}
+                                                    </h3>
+                                                </div>
+                                            );
+                                        }
+                                        if (item.type === 'table-header') {
+                                            return (
+                                                <div key={i} className="flex font-bold text-[11px] bg-slate-800 text-white p-2 rounded-t-md">
+                                                    <div className="w-10 text-center">NO</div>
+                                                    <div className="w-24 text-center">NO PEL</div>
+                                                    <div className="flex-1">NAMA PELANGGAN</div>
+                                                    <div className="w-20 text-center">PAKAI</div>
+                                                    <div className="w-32 text-right pr-2">TAGIHAN</div>
+                                                </div>
+                                            );
+                                        }
+                                        if (item.type === 'row') {
+                                            const c = item.data;
                                             const usage = (c.current_value_if_saved || 0) - c.meter_lalu;
+                                            const isLastInCol = i === col.length - 1;
+                                            const isNextHeader = !isLastInCol && col[i+1].type !== 'row';
+                                            const roundedBottom = isLastInCol || isNextHeader;
                                             return (
                                                 <div 
-                                                    key={c.id} 
-                                                    className={`flex text-sm p-2 border-b border-slate-100 last:border-b-0 ${idx % 2 === 0 ? 'bg-white' : 'bg-slate-50'}`}
+                                                    key={i} 
+                                                    className={`flex text-sm p-2 border-x border-b border-slate-200 ${item.index % 2 === 0 ? 'bg-white' : 'bg-slate-50'} ${roundedBottom ? 'rounded-b-md mb-4' : ''}`}
                                                 >
-                                                    <div className="w-10 text-center text-slate-500 font-medium">{idx + 1}</div>
+                                                    <div className="w-10 text-center text-slate-500 font-medium">{item.index}</div>
                                                     <div className="w-24 text-center font-mono text-slate-700 text-xs mt-0.5">{c.no_pelanggan}</div>
                                                     <div className="flex-1 font-bold text-slate-900">{c.nama}</div>
                                                     <div className="w-20 text-center font-mono text-slate-600">{usage} m³</div>
@@ -92,8 +132,8 @@ export const TagihanImageExport = forwardRef<HTMLDivElement, TagihanImageExportP
                                                     </div>
                                                 </div>
                                             );
-                                        })}
-                                    </div>
+                                        }
+                                    })}
                                 </div>
                             ))}
                         </div>
