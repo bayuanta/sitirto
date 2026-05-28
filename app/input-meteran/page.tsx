@@ -17,25 +17,6 @@ import {
     Pencil,
     RotateCcw,
     Settings,
-"use client";
-
-import { useEffect, useState, useRef } from "react";
-import { toast } from "sonner";
-import {
-    Search,
-    Check,
-    Save,
-    Calendar,
-    AlertCircle,
-    Loader2,
-    ChevronLeft,
-    ChevronRight,
-    ChevronDown,
-    CalendarRange,
-    Filter,
-    Pencil,
-    RotateCcw,
-    Settings,
     GripVertical,
     MapPin,
     Share2, 
