@@ -1008,8 +1008,21 @@ function CustomerDrawerContent({ customer, onPayInstallment, formatCurrency, onE
         if (!customerDetails) return;
         const total = formatCurrency(customerDetails.stats.total_arrears);
         const count = customerDetails.stats.total_bills;
+        
+        const unpaidBills = customerDetails.bills.filter(b => b.status !== 'paid').sort((a, b) => {
+            if (a.year !== b.year) return a.year - b.year;
+            return a.month - b.month;
+        });
+        
+        let billsText = unpaidBills.map(b => 
+            `- ${getMonthName(b.month)} ${b.year}: ${b.usage} m³ (${formatCurrency(b.remaining)})`
+        ).join('\n');
+
         const text = `Halo Bapak/Ibu *${customer.nama}*,
 Kami informasikan bahwa saat ini Anda memiliki tunggakan tagihan air Pamsimas Tirtowening.
+
+*Rincian Tunggakan:*
+${billsText}
 
 *Total Tunggakan:* ${total}
 *Jumlah:* ${count} bulan belum lunas
