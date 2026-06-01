@@ -1334,7 +1334,7 @@ Mohon untuk segera melakukan pelunasan. Terima kasih.`;
                         </div>
                     </div>
                     
-                    <DialogFooter>
+                    <DialogFooter className="flex-col sm:flex-row gap-2">
                         <Button 
                             variant="outline" 
                             onClick={() => setIsCustomPrintOpen(false)}
@@ -1343,12 +1343,24 @@ Mohon untuk segera melakukan pelunasan. Terima kasih.`;
                             Batal
                         </Button>
                         <Button 
+                            onClick={() => {
+                                setIsCustomPrintOpen(false);
+                                window.open('/print-tagihan?ids=' + selectedBillsForPrint.join(','), '_blank');
+                            }}
+                            disabled={selectedBillsForPrint.length === 0 || isExporting}
+                            variant="outline"
+                            className="rounded-full font-bold h-11 border-indigo-200 text-indigo-700 hover:bg-indigo-50"
+                        >
+                            <Printer className="mr-2 h-4 w-4" />
+                            Struk Biasa
+                        </Button>
+                        <Button 
                             onClick={() => handleExportBillPDF('custom')}
                             disabled={selectedBillsForPrint.length === 0 || isExporting}
                             className="rounded-full font-bold h-11 bg-indigo-600 hover:bg-indigo-700 text-white"
                         >
                             {isExporting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Printer className="mr-2 h-4 w-4" />}
-                            Cetak {selectedBillsForPrint.length} Tagihan
+                            Cetak PDF
                         </Button>
                     </DialogFooter>
                 </DialogContent>
