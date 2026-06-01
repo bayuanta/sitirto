@@ -4,6 +4,7 @@ import { useEffect, useState, useMemo, useRef, Suspense, useDeferredValue } from
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { toast } from "sonner";
 import * as htmlToImage from 'html-to-image';
+import { jsPDF } from "jspdf";
 import { TagihanPelangganImageExport, BillForExport } from "@/components/TagihanPelangganImageExport";
 import {
     useReactTable,
@@ -984,6 +985,41 @@ function CustomerDrawerContent({ customer, onPayInstallment, formatCurrency, onE
         }
     };
 
+    const handleExportBillPDF = async (mode: 'single' | 'all', bill?: BillForExport) => {
+        setExportMode(mode);
+        setExportBill(bill);
+        await new Promise(resolve => setTimeout(resolve, 300));
+        
+        if (!exportRef.current) return;
+        setIsExporting(true);
+        toast.loading("Membuat dokumen PDF...", { id: 'pdf-export' });
+
+        try {
+            const dataUrl = await htmlToImage.toJpeg(exportRef.current, {
+                quality: 1,
+                backgroundColor: '#ffffff',
+                pixelRatio: 2
+            });
+
+            const pdf = new jsPDF({
+                orientation: 'portrait',
+                unit: 'px',
+                format: [exportRef.current.offsetWidth, exportRef.current.offsetHeight]
+            });
+            
+            pdf.addImage(dataUrl, 'JPEG', 0, 0, exportRef.current.offsetWidth, exportRef.current.offsetHeight);
+            
+            const billLabel = mode === 'single' && bill ? `${bill.month}_${bill.year}` : 'Semua';
+            pdf.save(`Tagihan_${customer.no_pelanggan}_${billLabel}.pdf`);
+
+            toast.success("PDF berhasil diunduh!", { id: 'pdf-export' });
+        } catch (err) {
+            toast.error("Gagal membuat PDF", { id: 'pdf-export' });
+        } finally {
+            setIsExporting(false);
+        }
+    };
+
     const formatPhoneNumber = (phone: string | null | undefined) => {
         if (!phone) return "";
         let clean = phone.replace(/\D/g, '');
@@ -1415,17 +1451,28 @@ Mohon untuk segera melakukan pelunasan. Terima kasih.`;
                             )}
                         </div>
 
-                        {/* Share as Image */}
+                        {/* Share as Image and PDF */}
                         {customerDetails && customerDetails.stats.total_arrears > 0 && (
-                            <Button
-                                onClick={() => handleExportBillImage('all')}
-                                disabled={isExporting}
-                                variant="outline"
-                                className="w-full h-11 rounded-full border-indigo-300 text-indigo-600 hover:bg-indigo-50 font-bold text-sm"
-                            >
-                                {isExporting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <ImageIcon className="mr-2 h-4 w-4" />}
-                                Bagikan sebagai Gambar
-                            </Button>
+                            <div className="flex flex-col gap-2">
+                                <Button
+                                    onClick={() => handleExportBillImage('all')}
+                                    disabled={isExporting}
+                                    variant="outline"
+                                    className="w-full h-11 rounded-full border-indigo-300 text-indigo-600 hover:bg-indigo-50 font-bold text-sm"
+                                >
+                                    {isExporting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <ImageIcon className="mr-2 h-4 w-4" />}
+                                    Bagikan sebagai Gambar
+                                </Button>
+                                <Button
+                                    onClick={() => handleExportBillPDF('all')}
+                                    disabled={isExporting}
+                                    variant="outline"
+                                    className="w-full h-11 rounded-full border-rose-300 text-rose-600 hover:bg-rose-50 font-bold text-sm"
+                                >
+                                    {isExporting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FileText className="mr-2 h-4 w-4" />}
+                                    Cetak PDF (Semua Tunggakan)
+                                </Button>
+                            </div>
                         )}
 
                         {/* ACTION BUTTONS */}
@@ -1578,6 +1625,10 @@ Mohon untuk segera melakukan pelunasan. Terima kasih.`;
                                                             <DropdownMenuItem onClick={() => handleExportBillImage('single', bill)} disabled={isExporting} className="text-indigo-700 font-medium cursor-pointer">
                                                                 <ImageIcon className="h-4 w-4 mr-2" />
                                                                 Simpan sebagai Foto
+                                                            </DropdownMenuItem>
+                                                            <DropdownMenuItem onClick={() => handleExportBillPDF('single', bill)} disabled={isExporting} className="text-rose-700 font-medium cursor-pointer">
+                                                                <FileText className="h-4 w-4 mr-2" />
+                                                                Cetak sebagai PDF
                                                             </DropdownMenuItem>
                                                             <DropdownMenuSeparator />
                                                         </>
