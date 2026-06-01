@@ -47,6 +47,7 @@ import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Progress } from "@/components/ui/progress";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -880,6 +881,10 @@ function CustomerDrawerContent({ customer, onPayInstallment, formatCurrency, onE
     const [isExporting, setIsExporting] = useState(false);
     const [exportMode, setExportMode] = useState<'single' | 'all'>('all');
     const [exportBill, setExportBill] = useState<BillForExport | undefined>(undefined);
+    const [customExportBills, setCustomExportBills] = useState<BillForExport[]>([]);
+
+    const [isCustomPrintOpen, setIsCustomPrintOpen] = useState(false);
+    const [selectedBillsForPrint, setSelectedBillsForPrint] = useState<number[]>([]);
 
     const refreshDetails = async () => {
         const details = await getCustomerDetails(customer.id);
@@ -985,9 +990,16 @@ function CustomerDrawerContent({ customer, onPayInstallment, formatCurrency, onE
         }
     };
 
-    const handleExportBillPDF = async (mode: 'single' | 'all', bill?: BillForExport) => {
-        setExportMode(mode);
+    const handleExportBillPDF = async (mode: 'single' | 'all' | 'custom', bill?: BillForExport) => {
+        setExportMode(mode === 'custom' ? 'all' : mode);
         setExportBill(bill);
+        if (mode === 'custom') {
+            const unpaidBills = customerDetails?.bills.filter(b => b.status !== 'paid') || [];
+            const selected = unpaidBills.filter(b => selectedBillsForPrint.includes(b.id));
+            setCustomExportBills(selected);
+        } else {
+            setCustomExportBills([]);
+        }
         await new Promise(resolve => setTimeout(resolve, 300));
         
         if (!exportRef.current) return;
@@ -1009,10 +1021,12 @@ function CustomerDrawerContent({ customer, onPayInstallment, formatCurrency, onE
             
             pdf.addImage(dataUrl, 'JPEG', 0, 0, exportRef.current.offsetWidth, exportRef.current.offsetHeight);
             
-            const billLabel = mode === 'single' && bill ? `${bill.month}_${bill.year}` : 'Semua';
+            const billLabel = mode === 'single' && bill ? `${bill.month}_${bill.year}` : (mode === 'custom' ? 'Pilihan' : 'Semua');
             pdf.save(`Tagihan_${customer.no_pelanggan}_${billLabel}.pdf`);
 
             toast.success("PDF berhasil diunduh!", { id: 'pdf-export' });
+            setIsCustomPrintOpen(false);
+            setSelectedBillsForPrint([]);
         } catch (err) {
             toast.error("Gagal membuat PDF", { id: 'pdf-export' });
         } finally {
@@ -1260,10 +1274,85 @@ Mohon untuk segera melakukan pelunasan. Terima kasih.`;
                     alamat: customer.alamat,
                     wilayah: customer.wilayah?.nama_wilayah
                 }}
-                bills={customerDetails?.bills || []}
+                bills={customExportBills.length > 0 ? customExportBills : (customerDetails?.bills || [])}
                 mode={exportMode}
                 selectedBill={exportBill}
             />
+
+            <Dialog open={isCustomPrintOpen} onOpenChange={setIsCustomPrintOpen}>
+                <DialogContent className="sm:max-w-[425px] rounded-[24px]">
+                    <DialogHeader>
+                        <DialogTitle>Pilih Bulan Tagihan</DialogTitle>
+                        <DialogDescription>
+                            Centang bulan yang ingin digabung menjadi 1 struk PDF.
+                        </DialogDescription>
+                    </DialogHeader>
+                    
+                    <div className="py-4 space-y-4">
+                        {customerDetails && (
+                            <div className="flex items-center space-x-2 border-b border-slate-100 pb-3">
+                                <Checkbox 
+                                    id="select-all" 
+                                    checked={selectedBillsForPrint.length === customerDetails.bills.filter(b => b.status !== 'paid').length}
+                                    onCheckedChange={(checked) => {
+                                        if (checked) {
+                                            setSelectedBillsForPrint(customerDetails.bills.filter(b => b.status !== 'paid').map(b => b.id));
+                                        } else {
+                                            setSelectedBillsForPrint([]);
+                                        }
+                                    }}
+                                />
+                                <label htmlFor="select-all" className="text-sm font-bold cursor-pointer">Pilih Semua Tunggakan</label>
+                            </div>
+                        )}
+                        
+                        <div className="max-h-[300px] overflow-y-auto space-y-2 pr-2 custom-scrollbar">
+                            {customerDetails?.bills.filter(b => b.status !== 'paid').sort((a, b) => {
+                                if (a.year !== b.year) return a.year - b.year;
+                                return a.month - b.month;
+                            }).map(bill => (
+                                <div key={bill.id} className="flex items-center justify-between p-3 rounded-xl border border-slate-100 hover:bg-slate-50 transition-colors">
+                                    <div className="flex items-center space-x-3">
+                                        <Checkbox 
+                                            id={`bill-${bill.id}`} 
+                                            checked={selectedBillsForPrint.includes(bill.id)}
+                                            onCheckedChange={(checked) => {
+                                                if (checked) {
+                                                    setSelectedBillsForPrint([...selectedBillsForPrint, bill.id]);
+                                                } else {
+                                                    setSelectedBillsForPrint(selectedBillsForPrint.filter(id => id !== bill.id));
+                                                }
+                                            }}
+                                        />
+                                        <label htmlFor={`bill-${bill.id}`} className="text-sm font-medium cursor-pointer">
+                                            {getMonthName(bill.month)} {bill.year}
+                                        </label>
+                                    </div>
+                                    <span className="text-sm font-bold text-slate-700">{formatCurrency(bill.remaining)}</span>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                    
+                    <DialogFooter>
+                        <Button 
+                            variant="outline" 
+                            onClick={() => setIsCustomPrintOpen(false)}
+                            className="rounded-full font-bold h-11"
+                        >
+                            Batal
+                        </Button>
+                        <Button 
+                            onClick={() => handleExportBillPDF('custom')}
+                            disabled={selectedBillsForPrint.length === 0 || isExporting}
+                            className="rounded-full font-bold h-11 bg-indigo-600 hover:bg-indigo-700 text-white"
+                        >
+                            {isExporting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Printer className="mr-2 h-4 w-4" />}
+                            Cetak {selectedBillsForPrint.length} Tagihan
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
 
             {/* STICKY HEADER */}
             <div className="bg-white px-4 pt-4 pb-0 shadow-sm border-b border-slate-100 z-10 sticky top-0">
@@ -1471,6 +1560,21 @@ Mohon untuk segera melakukan pelunasan. Terima kasih.`;
                                 >
                                     {isExporting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FileText className="mr-2 h-4 w-4" />}
                                     Cetak PDF (Semua Tunggakan)
+                                </Button>
+                                <Button
+                                    onClick={() => {
+                                        if (customerDetails?.bills) {
+                                            const unpaid = customerDetails.bills.filter(b => b.status !== 'paid');
+                                            setSelectedBillsForPrint(unpaid.map(b => b.id)); // Default select all
+                                        }
+                                        setIsCustomPrintOpen(true);
+                                    }}
+                                    disabled={isExporting}
+                                    variant="outline"
+                                    className="w-full h-11 rounded-full border-amber-300 text-amber-600 hover:bg-amber-50 font-bold text-sm"
+                                >
+                                    {isExporting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Printer className="mr-2 h-4 w-4" />}
+                                    Cetak PDF (Pilih Bulan)
                                 </Button>
                             </div>
                         )}
