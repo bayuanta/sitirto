@@ -2,17 +2,26 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { Printer, ArrowLeft, Droplets, Loader2 } from 'lucide-react';
+import { Printer, ArrowLeft, Droplets, Loader2, MessageCircle, FileImage, FileText } from 'lucide-react';
 import { format } from 'date-fns';
 import { id as localeId } from 'date-fns/locale';
 import { PrintBillData } from './actions';
 import { cn } from '@/lib/utils';
+import * as htmlToImage from 'html-to-image';
+import { jsPDF } from 'jspdf';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 export default function PrintBillsClient({ data, initialFormat }: { data: PrintBillData, initialFormat: string }) {
     const router = useRouter();
     const printRef = useRef<HTMLDivElement>(null);
     const [formatOption, setFormatOption] = useState<'thermal' | 'hemat' | 'full'>(initialFormat as any || 'thermal');
     const [mounted, setMounted] = useState(false);
+    const [isSharing, setIsSharing] = useState(false);
 
     useEffect(() => {
         setMounted(true);
@@ -20,6 +29,85 @@ export default function PrintBillsClient({ data, initialFormat }: { data: PrintB
 
     const handlePrint = () => {
         window.print();
+    };
+
+    const handleShareWA = async (type: 'jpg' | 'pdf') => {
+        if (!printRef.current) return;
+        setIsSharing(true);
+
+        try {
+            // Wait for fonts/images to load properly
+            await new Promise(resolve => setTimeout(resolve, 300));
+            
+            // 1. Generate image first
+            const dataUrl = await htmlToImage.toJpeg(printRef.current, {
+                quality: 1,
+                backgroundColor: '#ffffff',
+                pixelRatio: type === 'pdf' ? 2 : 3, // Lower ratio for PDF to save size
+                style: { margin: '0', boxShadow: 'none', border: 'none', transform: 'none' }
+            });
+
+            // Summary text for WA
+            const text = `Halo Bapak/Ibu *${data.customerName}*, ini adalah Rincian Tagihan Air PAMSIMAS Tirtowening Anda.
+
+*Total Tunggakan:* ${formatRupiah(data.totalAmount)}
+*Jumlah:* ${data.details.length} bulan belum lunas
+
+Mohon untuk segera melakukan pelunasan agar layanan tetap berjalan lancar. Terima kasih. 🙏`;
+
+            let fileToShare: File;
+            const filenameBase = `Tagihan_${data.customerNumber}`;
+
+            if (type === 'pdf') {
+                const pdf = new jsPDF({
+                    orientation: formatOption === 'hemat' ? 'landscape' : 'portrait',
+                    unit: 'px',
+                    format: [printRef.current.offsetWidth, printRef.current.offsetHeight]
+                });
+                pdf.addImage(dataUrl, 'JPEG', 0, 0, printRef.current.offsetWidth, printRef.current.offsetHeight);
+                const pdfBlob = pdf.output('blob');
+                fileToShare = new File([pdfBlob], `${filenameBase}.pdf`, { type: 'application/pdf' });
+            } else {
+                const imgBlob = await (await fetch(dataUrl)).blob();
+                fileToShare = new File([imgBlob], `${filenameBase}.jpg`, { type: 'image/jpeg' });
+            }
+
+            // Check if Web Share API is available and can share files
+            if (navigator?.share && navigator.canShare && navigator.canShare({ files: [fileToShare] })) {
+                try {
+                    await navigator.share({ 
+                        files: [fileToShare], 
+                        title: 'Rincian Tagihan Pamsimas',
+                        text: text.replace(/ {2,}/g, '')
+                    });
+                    setIsSharing(false);
+                    return; // Success
+                } catch (e) {
+                    console.log("Share API error or cancelled, using fallback", e);
+                }
+            }
+
+            // FALLBACK (for Desktop or if sharing fails)
+            const link = document.createElement('a');
+            link.download = fileToShare.name;
+            if (type === 'pdf') {
+                link.href = URL.createObjectURL(fileToShare);
+            } else {
+                link.href = dataUrl;
+            }
+            link.click();
+
+            setTimeout(() => {
+                const encodedText = encodeURIComponent(text.replace(/ {2,}/g, ''));
+                window.open(`https://wa.me/?text=${encodedText}`, '_blank');
+                setIsSharing(false);
+            }, 500);
+
+        } catch (error) {
+            console.error("Error generating share file:", error);
+            setIsSharing(false);
+            alert("Gagal memproses file. Silakan coba lagi.");
+        }
     };
 
     const formatRupiah = (n: number) =>
@@ -174,6 +262,28 @@ export default function PrintBillsClient({ data, initialFormat }: { data: PrintB
                                 Full A4
                             </button>
                         </div>
+
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <button
+                                    disabled={isSharing}
+                                    className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 shadow-md shrink-0 transition-colors disabled:opacity-50"
+                                >
+                                    {isSharing ? <Loader2 className="w-4 h-4 animate-spin" /> : <MessageCircle className="w-4 h-4" />}
+                                    Share WA
+                                </button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="w-48 font-bold">
+                                <DropdownMenuItem onClick={() => handleShareWA('jpg')} className="cursor-pointer text-slate-700 focus:bg-emerald-50 focus:text-emerald-700">
+                                    <FileImage className="mr-2 h-4 w-4" />
+                                    <span>Bagikan Gambar (JPG)</span>
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => handleShareWA('pdf')} className="cursor-pointer text-slate-700 focus:bg-emerald-50 focus:text-emerald-700">
+                                    <FileText className="mr-2 h-4 w-4" />
+                                    <span>Bagikan PDF</span>
+                                </DropdownMenuItem>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
 
                         <button
                             onClick={handlePrint}
