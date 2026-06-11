@@ -217,7 +217,7 @@ Mohon untuk segera melakukan pelunasan agar layanan tetap berjalan lancar. Terim
     }
 
     return (
-        <div className="min-h-screen bg-slate-100 font-sans pb-20">
+        <div className="min-h-screen bg-slate-100 print:bg-white font-sans pb-20 print:pb-0">
             {/* CONTROL PANEL (Hidden in Print) */}
             <div className="bg-white border-b shadow-sm sticky top-0 z-50 print:hidden p-4 mb-8">
                 <div className="max-w-4xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
