@@ -85,19 +85,19 @@ export function HeroSection() {
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ duration: 0.6, delay: 0 }}
                             className="absolute"
-                            style={{ right: '-50px', bottom: '180px', zIndex: 2 }}
+                            style={{ right: '-20px', bottom: '220px', zIndex: 2 }}
                         >
                             <motion.div
                                 animate={{ y: [0, -15, 0] }}
                                 transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
                             >
                                 <Image
-                                    src="/acuasafe/images/pamsimas-logo.png"
+                                    src="/logo-pamsimas.png"
                                     alt="PAMSIMAS Logo"
-                                    width={650}
-                                    height={288}
-                                    style={{ width: 'auto', height: 'auto' }}
-                                    className="object-contain"
+                                    width={500}
+                                    height={150}
+                                    style={{ width: 'auto', height: '120px' }}
+                                    className="object-contain bg-white/95 p-6 rounded-3xl shadow-[0_20px_50px_rgba(0,0,0,0.3)] border border-white/20"
                                     priority
                                 />
                             </motion.div>
