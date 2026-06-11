@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import Image from "next/image";
 import {
     LayoutDashboard,
     Users,
@@ -56,19 +57,14 @@ export function Sidebar({ isCollapsed, toggleSidebar, className, isMobile = fals
             {/* Header: Logo & Toggle - Reduced Height */}
             <div className={cn("flex items-center p-4 h-16 lg:h-20", isCollapsed ? "justify-center" : "justify-between")}>
                 {/* Logo Area */}
-                <div className={cn("flex items-center gap-3 overflow-hidden transition-all duration-300", isCollapsed ? "w-0 p-0 opacity-0 hidden" : "w-auto opacity-100")}>
-                    <div className="h-8 w-8 rounded-lg bg-indigo-600 flex items-center justify-center shadow-md shadow-indigo-200 shrink-0">
-                        <Droplets className="h-4 w-4 text-white fill-current" />
-                    </div>
-                    <div>
-                        <h1 className="text-xl font-extrabold tracking-tight text-slate-900 leading-none">PAMSIMAS</h1>
-                    </div>
+                <div className={cn("flex items-center overflow-hidden transition-all duration-300", isCollapsed ? "w-0 p-0 opacity-0 hidden" : "w-auto opacity-100")}>
+                    <Image src="/logo-pamsimas.png" alt="Pamsimas Tirtowening" width={160} height={50} className="object-contain" priority />
                 </div>
 
                 {/* Collapsed Logo */}
                 {isCollapsed && (
-                    <div className="h-8 w-8 rounded-lg bg-indigo-600 flex items-center justify-center shadow-md shadow-indigo-200 shrink-0">
-                        <Droplets className="h-4 w-4 text-white fill-current" />
+                    <div className="h-8 w-8 flex items-center justify-center shrink-0">
+                        <Image src="/logo-pamsimas.png" alt="P" width={32} height={32} className="object-contain" />
                     </div>
                 )}
 
