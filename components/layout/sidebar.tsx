@@ -55,22 +55,22 @@ export function Sidebar({ isCollapsed, toggleSidebar, className, isMobile = fals
         <div className={cn("h-full flex flex-col bg-white overflow-hidden", className)}>
 
             {/* Header: Logo & Toggle - Reduced Height */}
-            <div className={cn("flex items-center p-4 h-16 lg:h-20", isCollapsed ? "justify-center" : "justify-between")}>
+            <div className="flex items-center p-4 h-16 lg:h-20 justify-center relative">
                 {/* Logo Area */}
-                <div className={cn("flex items-center overflow-hidden transition-all duration-300", isCollapsed ? "w-0 p-0 opacity-0 hidden" : "w-auto opacity-100")}>
-                    <Image src="/logo-pamsimas.png" alt="Pamsimas Tirtowening" width={160} height={50} className="object-contain" priority />
+                <div className={cn("flex items-center justify-center overflow-hidden transition-all duration-300 w-full", isCollapsed ? "w-0 p-0 opacity-0 hidden" : "opacity-100")}>
+                    <Image src="/logo-pamsimas.png" alt="Pamsimas Tirtowening" width={170} height={55} className="object-contain drop-shadow-[0_1px_1px_rgba(0,0,0,0.6)]" priority />
                 </div>
 
                 {/* Collapsed Logo */}
                 {isCollapsed && (
                     <div className="h-8 w-8 flex items-center justify-center shrink-0">
-                        <Image src="/logo-pamsimas.png" alt="P" width={32} height={32} className="object-contain" />
+                        <Image src="/logo-pamsimas.png" alt="P" width={32} height={32} className="object-contain drop-shadow-[0_1px_1px_rgba(0,0,0,0.6)]" />
                     </div>
                 )}
 
                 {/* Mobile Close Button */}
                 {isMobile && (
-                    <Button variant="ghost" size="icon" onClick={toggleSidebar}>
+                    <Button variant="ghost" size="icon" onClick={toggleSidebar} className="absolute right-2 top-1/2 -translate-y-1/2">
                         <X className="h-5 w-5 text-slate-400" />
                     </Button>
                 )}
