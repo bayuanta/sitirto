@@ -96,11 +96,7 @@ export function HeroSection() {
                                     alt="PAMSIMAS Logo"
                                     width={650}
                                     height={288}
-                                    style={{ 
-                                        width: '650px', 
-                                        height: 'auto',
-                                        filter: 'drop-shadow(0px 0px 20px rgba(255,255,255,0.9)) drop-shadow(0px 0px 6px rgba(255,255,255,1))'
-                                    }}
+                                    style={{ width: '650px', height: 'auto' }}
                                     className="object-contain"
                                     priority
                                 />
