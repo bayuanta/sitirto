@@ -4,6 +4,7 @@ import { useEffect } from 'react';
 import { format } from 'date-fns';
 import { id as localeId } from 'date-fns/locale';
 import { Printer, ArrowLeft, Droplets, AlertTriangle } from 'lucide-react';
+import Image from 'next/image';
 import { DisconnectionNoticeData } from './actions';
 
 const formatCurrency = (amount: number) => {
@@ -57,8 +58,8 @@ export default function PrintPemutusanClient({ data }: { data: DisconnectionNoti
             <div className="w-full max-w-[210mm] mx-auto bg-white shadow-lg p-[15mm] print:shadow-none print:p-[15mm] flex flex-col print:max-w-none print:w-full print:min-h-0">
                 {/* Kop Surat */}
                 <div className="flex items-center gap-6 border-b-2 border-slate-900 pb-4 mb-8">
-                    <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center border-2 border-slate-900 shadow-sm">
-                        <Droplets className="w-10 h-10 text-slate-900" />
+                    <div className="flex items-center justify-center">
+                        <Image src="/logo-pamsimas.png" alt="Logo Pamsimas" width={160} height={60} className="object-contain brightness-0" priority />
                     </div>
                     <div className="flex-1 text-center">
                         <h1 className="text-xl font-black uppercase tracking-[0.2em] text-slate-900 leading-tight">PAMSIMAS TIRTOWENING</h1>

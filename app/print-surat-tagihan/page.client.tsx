@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react';
 import { Printer, ArrowLeft, Droplets, AlertTriangle } from 'lucide-react';
+import Image from 'next/image';
 import { DunningLetterData } from './actions';
 
 const formatCurrency = (amount: number) => {
@@ -35,8 +36,8 @@ export default function PrintSuratTagihanClient({ data }: { data: DunningLetterD
                 {/* Header Section */}
                 <div className="mb-3">
                     <div className="flex items-center gap-2 mb-1">
-                        <div className="w-6 h-6 bg-slate-100 rounded-full flex items-center justify-center border border-slate-200">
-                            <Droplets className="w-3.5 h-3.5 text-slate-900" />
+                        <div className="flex items-center justify-center">
+                            <Image src="/logo-pamsimas.png" alt="Logo Pamsimas" width={60} height={20} className="object-contain brightness-0" priority />
                         </div>
                         <div>
                             <span className="text-[10px] font-black text-slate-900 uppercase tracking-tighter block leading-none">{pamsimasInfo.name}</span>
