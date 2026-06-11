@@ -55,11 +55,11 @@ export function Sidebar({ isCollapsed, toggleSidebar, className, isMobile = fals
         <div className={cn("h-full flex flex-col bg-white overflow-hidden", className)}>
 
             {/* Header: Logo & Toggle - Reduced Height */}
-            <div className="flex items-center p-4 h-16 lg:h-20 justify-center relative">
+            <div className="flex items-center p-4 h-[76px] lg:h-[88px] justify-center relative">
                 {/* Logo Area */}
                 <div className={cn("flex items-center justify-center overflow-hidden transition-all duration-300 w-full", isCollapsed ? "w-0 p-0 opacity-0 hidden" : "opacity-100")}>
-                    <div className="border-2 border-slate-200 rounded-xl w-full h-[48px] flex justify-center items-center bg-slate-50/50 p-1 shadow-sm overflow-hidden">
-                        <Image src="/logo-pamsimas.png" alt="Pamsimas Tirtowening" width={200} height={40} className="w-full h-full object-contain brightness-0 scale-[1.15]" priority />
+                    <div className="border-2 border-slate-200 rounded-xl w-full h-[56px] flex justify-center items-center bg-slate-50/50 p-2 shadow-sm overflow-hidden">
+                        <Image src="/logo-pamsimas.png" alt="Pamsimas Tirtowening" width={200} height={44} className="w-full h-full object-contain brightness-0 scale-110" priority />
                     </div>
                 </div>
 
