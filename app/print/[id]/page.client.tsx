@@ -288,7 +288,7 @@ Terima kasih atas pembayaran Anda. 🙏`;
             <div className="print:m-0 print:bg-white print:w-full print:h-full">
                 {formatOption === 'hemat' ? (
                     // HEMAT KERTAS: TIKET HORIZONTAL KECIL (1/5 Kertas A4)
-                    <div ref={printRef} className={cn(getFormatWrapperClass(), "print:border-none print:shadow-none")}>
+                    <div ref={printRef} className={cn(getFormatWrapperClass())}>
                         {/* Kiri: Info Perusahaan */}
                         <div className="w-[30%] border-r-2 border-black border-dashed pr-4 flex flex-col justify-center text-center">
                             <div className="flex justify-center mb-1">
@@ -362,7 +362,7 @@ Terima kasih atas pembayaran Anda. 🙏`;
                     </div>
                 ) : (
                     // THERMAL & FULL A4: STRUK VERTIKAL NORMAL
-                    <div ref={printRef} className={cn(getFormatWrapperClass(), "print:border-none print:shadow-none")}>
+                    <div ref={printRef} className={cn(getFormatWrapperClass())}>
                         <ReceiptContent />
                     </div>
                 )}
