@@ -201,7 +201,7 @@ Terima kasih atas pembayaran Anda. 🙏`;
             case 'thermal':
                 return "w-[80mm] min-h-[100mm] mx-auto bg-white p-4 print:p-0 print:w-full border shadow-sm";
             case 'hemat':
-                return "w-[210mm] h-[55mm] mx-auto bg-white p-4 border shadow-sm overflow-hidden flex print:border-dashed print:border-2 print:border-gray-400 print:shadow-none print:p-0 relative";
+                return "w-[210mm] h-[55mm] mx-auto bg-white p-4 border shadow-sm overflow-hidden flex print:border-b-dashed print:border-b-2 print:border-b-gray-400 print:border-x-0 print:border-t-0 print:shadow-none print:p-0 print:pr-4 relative";
             case 'full':
                 return "w-[210mm] min-h-[297mm] mx-auto bg-white p-12 border shadow-sm print:border-none print:shadow-none print:p-8";
             default:
