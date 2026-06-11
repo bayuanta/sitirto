@@ -85,7 +85,7 @@ export function HeroSection() {
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ duration: 0.6, delay: 0 }}
                             className="absolute"
-                            style={{ right: '-20px', bottom: '220px', zIndex: 2 }}
+                            style={{ right: '-50px', bottom: '180px', zIndex: 2 }}
                         >
                             <motion.div
                                 animate={{ y: [0, -15, 0] }}
@@ -94,10 +94,14 @@ export function HeroSection() {
                                 <Image
                                     src="/logo-pamsimas.png"
                                     alt="PAMSIMAS Logo"
-                                    width={500}
-                                    height={150}
-                                    style={{ width: 'auto', height: '120px' }}
-                                    className="object-contain bg-white/95 p-6 rounded-3xl shadow-[0_20px_50px_rgba(0,0,0,0.3)] border border-white/20"
+                                    width={650}
+                                    height={288}
+                                    style={{ 
+                                        width: '650px', 
+                                        height: 'auto',
+                                        filter: 'drop-shadow(0px 0px 20px rgba(255,255,255,0.9)) drop-shadow(0px 0px 6px rgba(255,255,255,1))'
+                                    }}
+                                    className="object-contain"
                                     priority
                                 />
                             </motion.div>
