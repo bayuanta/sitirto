@@ -58,15 +58,15 @@ export function Sidebar({ isCollapsed, toggleSidebar, className, isMobile = fals
             <div className="flex items-center p-4 h-[76px] lg:h-[88px] justify-center relative">
                 {/* Logo Area */}
                 <div className={cn("flex items-center justify-center overflow-hidden transition-all duration-300 w-full", isCollapsed ? "w-0 p-0 opacity-0 hidden" : "opacity-100")}>
-                    <div className="border-2 border-slate-800 rounded-xl w-full h-[56px] flex justify-center items-center bg-slate-950 p-2 shadow-sm overflow-hidden">
-                        <Image src="/logo-pamsimas.png" alt="Pamsimas Tirtowening" width={200} height={44} className="w-full h-full object-contain scale-110" priority />
+                    <div className="border-2 border-slate-200 rounded-xl w-full h-[56px] flex justify-center items-center bg-slate-50/50 p-2 shadow-sm overflow-hidden">
+                        <Image src="/logo-pamsimas.png" alt="Pamsimas Tirtowening" width={200} height={44} className="w-full h-full object-contain brightness-0 scale-110" priority />
                     </div>
                 </div>
 
                 {/* Collapsed Logo */}
                 {isCollapsed && (
-                    <div className="h-10 w-10 border-2 border-slate-800 rounded-xl p-1 flex items-center justify-center shrink-0 bg-slate-950 shadow-sm">
-                        <Image src="/logo-pamsimas.png" alt="P" width={32} height={32} className="w-full h-full object-contain" />
+                    <div className="h-10 w-10 border-2 border-slate-200 rounded-xl p-1 flex items-center justify-center shrink-0 bg-slate-50/50 shadow-sm">
+                        <Image src="/logo-pamsimas.png" alt="P" width={32} height={32} className="w-full h-full object-contain brightness-0" />
                     </div>
                 )}
 
