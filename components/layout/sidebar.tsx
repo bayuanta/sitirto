@@ -57,16 +57,16 @@ export function Sidebar({ isCollapsed, toggleSidebar, className, isMobile = fals
             {/* Header: Logo & Toggle - Reduced Height */}
             <div className="flex items-center p-4 h-16 lg:h-20 justify-center relative">
                 {/* Logo Area */}
-                <div className={cn("flex items-center justify-center overflow-hidden transition-all duration-300 w-full px-3", isCollapsed ? "w-0 p-0 opacity-0 hidden" : "opacity-100")}>
-                    <div className="border-2 border-slate-200 rounded-xl py-1.5 px-3 flex justify-center items-center bg-slate-50/50">
-                        <Image src="/logo-pamsimas.png" alt="Pamsimas Tirtowening" width={130} height={32} className="object-contain brightness-0" priority />
+                <div className={cn("flex items-center justify-center overflow-hidden transition-all duration-300 w-full px-4", isCollapsed ? "w-0 p-0 opacity-0 hidden" : "opacity-100")}>
+                    <div className="border-2 border-slate-200 rounded-xl p-3 w-full max-w-[150px] flex justify-center items-center bg-slate-50/50">
+                        <Image src="/logo-pamsimas.png" alt="Pamsimas Tirtowening" width={400} height={120} className="w-full h-auto object-contain brightness-0" priority />
                     </div>
                 </div>
 
                 {/* Collapsed Logo */}
                 {isCollapsed && (
-                    <div className="h-8 w-8 flex items-center justify-center shrink-0">
-                        <Image src="/logo-pamsimas.png" alt="P" width={32} height={32} className="object-contain brightness-0" />
+                    <div className="h-10 w-10 border-2 border-slate-200 rounded-xl p-1.5 flex items-center justify-center shrink-0 bg-slate-50/50">
+                        <Image src="/logo-pamsimas.png" alt="P" width={100} height={30} className="w-full h-auto object-contain brightness-0" />
                     </div>
                 )}
 
