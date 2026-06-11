@@ -58,9 +58,9 @@ export function Sidebar({ isCollapsed, toggleSidebar, className, isMobile = fals
             <div className="flex items-center p-4 h-16 lg:h-20 justify-center relative">
                 {/* Logo Area */}
                 <div className={cn("flex items-center justify-center overflow-hidden transition-all duration-300 w-full px-2", isCollapsed ? "w-0 p-0 opacity-0 hidden" : "opacity-100")}>
-                    <div className="border-2 border-slate-200 rounded-xl w-[180px] h-[52px] flex justify-center items-center bg-slate-50/50 shadow-sm">
-                        <Droplets className="w-6 h-6 text-sky-500 shrink-0 fill-current -mr-2 z-10" />
-                        <Image src="/logo-pamsimas.png" alt="Pamsimas Tirtowening" width={140} height={42} className="w-[130px] h-full object-contain brightness-0" priority />
+                    <div className="border-2 border-slate-200 rounded-xl w-[164px] h-[48px] flex justify-center items-center bg-slate-50/50 p-2 gap-1.5 shadow-sm">
+                        <Droplets className="w-5 h-5 text-sky-500 shrink-0 fill-current" />
+                        <Image src="/logo-pamsimas.png" alt="Pamsimas Tirtowening" width={130} height={32} className="w-[120px] h-full object-contain brightness-0" priority />
                     </div>
                 </div>
 
