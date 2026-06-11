@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { Printer, ArrowLeft, Droplets, MessageCircle, Loader2 } from 'lucide-react';
+import Image from 'next/image';
 import * as htmlToImage from 'html-to-image';
 import { format } from 'date-fns';
 import { id as localeId } from 'date-fns/locale';
@@ -106,8 +107,8 @@ Terima kasih atas pembayaran Anda. 🙏`;
         <div className="flex flex-col h-full bg-white text-black">
             {/* Header */}
             <div className="text-center mb-4 border-b-2 border-black pb-2 border-dashed">
-                <div className="flex justify-center mb-1">
-                    <Droplets className="w-6 h-6" />
+                <div className="flex justify-center mb-2">
+                    <Image src="/logo-pamsimas.png" alt="Logo Pamsimas" width={140} height={50} className="object-contain grayscale" priority />
                 </div>
                 <h2 className="font-black text-lg uppercase tracking-tight leading-none mb-1">{pamsimasInfo.name}</h2>
                 <p className="text-xs">{pamsimasInfo.address}</p>
@@ -291,8 +292,8 @@ Terima kasih atas pembayaran Anda. 🙏`;
                     <div ref={printRef} className={cn(getFormatWrapperClass())}>
                         {/* Kiri: Info Perusahaan */}
                         <div className="w-[30%] border-r-2 border-black border-dashed pr-4 flex flex-col justify-center text-center">
-                            <div className="flex justify-center mb-1">
-                                <Droplets className="w-8 h-8 text-black" />
+                            <div className="flex justify-center mb-2">
+                                <Image src="/logo-pamsimas.png" alt="Logo Pamsimas" width={100} height={35} className="object-contain grayscale" priority />
                             </div>
                             <h2 className="font-black text-sm uppercase tracking-tight leading-none mb-1">{pamsimasInfo.name}</h2>
                             <p className="text-[9px]">{pamsimasInfo.address}</p>
