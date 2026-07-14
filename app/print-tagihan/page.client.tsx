@@ -131,7 +131,9 @@ Mohon untuk segera melakukan pelunasan agar layanan tetap berjalan lancar. Terim
             {/* Header */}
             <div className="text-center mb-4 border-b-2 border-black pb-2 border-dashed">
                 <div className="flex justify-center mb-2">
-                    <Image src="/logo-pamsimas.png" alt="Logo Pamsimas" width={140} height={50} className="object-contain brightness-0" priority />
+                    {(formatOption !== 'thermal' && formatOption !== 'thermal58') && (
+                        <Image src="/logo-pamsimas.png" alt="Logo Pamsimas" width={140} height={50} className="object-contain brightness-0" priority />
+                    )}
                 </div>
                 <h2 className="font-black text-lg uppercase tracking-tight leading-none mb-1">{pamsimasInfo.name}</h2>
                 <p className="text-xs">{pamsimasInfo.address}</p>
