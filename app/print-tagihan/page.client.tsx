@@ -20,7 +20,7 @@ import {
 export default function PrintBillsClient({ data, initialFormat }: { data: PrintBillData, initialFormat: string }) {
     const router = useRouter();
     const printRef = useRef<HTMLDivElement>(null);
-    const [formatOption, setFormatOption] = useState<'thermal' | 'hemat' | 'full'>(initialFormat as any || 'thermal');
+    const [formatOption, setFormatOption] = useState<'thermal58' | 'thermal' | 'hemat' | 'full'>(initialFormat as any || 'thermal58');
     const [mounted, setMounted] = useState(false);
     const [isSharing, setIsSharing] = useState(false);
 
@@ -198,6 +198,8 @@ Mohon untuk segera melakukan pelunasan agar layanan tetap berjalan lancar. Terim
     // Dynamic classes based on format
     const getFormatWrapperClass = () => {
         switch (formatOption) {
+            case 'thermal58':
+                return "w-[58mm] min-h-[80mm] mx-auto bg-white p-2 print:p-0 print:w-full border shadow-sm";
             case 'thermal':
                 return "w-[80mm] min-h-[100mm] mx-auto bg-white p-4 print:p-0 print:w-full border shadow-sm";
             case 'hemat':
@@ -205,7 +207,7 @@ Mohon untuk segera melakukan pelunasan agar layanan tetap berjalan lancar. Terim
             case 'full':
                 return "w-[210mm] min-h-[297mm] mx-auto bg-white p-12 border shadow-sm print:border-none print:shadow-none print:p-8";
             default:
-                return "w-[80mm] mx-auto bg-white p-4 border shadow-sm";
+                return "w-[58mm] mx-auto bg-white p-2 border shadow-sm";
         }
     };
 
@@ -245,10 +247,16 @@ Mohon untuk segera melakukan pelunasan agar layanan tetap berjalan lancar. Terim
                     <div className="flex items-center gap-3 w-full sm:w-auto overflow-x-auto pb-2 sm:pb-0">
                         <div className="bg-slate-100 p-1 rounded-lg flex gap-1 shrink-0">
                             <button
+                                onClick={() => setFormatOption('thermal58')}
+                                className={cn("px-4 py-1.5 rounded-md text-xs font-bold transition-all", formatOption === 'thermal58' ? "bg-white shadow text-indigo-600" : "text-slate-500 hover:bg-slate-200")}
+                            >
+                                Thermal 58mm
+                            </button>
+                            <button
                                 onClick={() => setFormatOption('thermal')}
                                 className={cn("px-4 py-1.5 rounded-md text-xs font-bold transition-all", formatOption === 'thermal' ? "bg-white shadow text-indigo-600" : "text-slate-500 hover:bg-slate-200")}
                             >
-                                Thermal
+                                Thermal 80mm
                             </button>
                             <button
                                 onClick={() => setFormatOption('hemat')}

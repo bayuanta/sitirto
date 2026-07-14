@@ -8,7 +8,7 @@ export default async function PrintBillsPage({
     searchParams: Promise<{ ids?: string; format?: string }>;
 }) {
     const resolvedSearchParams = await searchParams;
-    const format = resolvedSearchParams.format || 'thermal';
+    const format = resolvedSearchParams.format || 'thermal58';
 
     if (!resolvedSearchParams.ids) {
         return notFound();
