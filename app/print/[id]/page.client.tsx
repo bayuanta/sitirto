@@ -106,7 +106,7 @@ Terima kasih atas pembayaran Anda. 🙏`;
     const ReceiptContent = () => (
         <div className="flex flex-col h-full bg-white text-black">
             {/* Header */}
-            <div className="text-center mb-4 border-b-2 border-black pb-2 border-dashed">
+            <div className="text-center mb-4 border-b-2 border-black pb-2 border-solid">
                 <div className="flex justify-center mb-2">
                     {(formatOption !== 'thermal' && formatOption !== 'thermal58') && (
                         <Image src="/logo-pamsimas.png" alt="Logo Pamsimas" width={140} height={50} className="object-contain brightness-0" priority />
@@ -125,7 +125,7 @@ Terima kasih atas pembayaran Anda. 🙏`;
                 <div className="text-gray-600">No. Samb.</div><div>:</div><div className="font-mono">{data.customerNumber}</div>
             </div>
 
-            <div className="border-t border-black border-dashed my-2"></div>
+            <div className="border-t border-black border-solid my-2"></div>
 
             {/* Details */}
             <div className="text-xs mb-4">
@@ -141,7 +141,7 @@ Terima kasih atas pembayaran Anda. 🙏`;
                     </thead>
                     <tbody className="align-top">
                         {data.details.map((d, idx) => (
-                            <tr key={idx} className="border-b border-gray-200 border-dashed">
+                            <tr key={idx} className="border-b border-gray-200 border-solid">
                                 <td className="py-1">
                                     <div className="font-bold">{mounted ? formatBulan(d.month, d.year) : '...'}</div>
                                     {d.usage > 0 && <div className="text-[9px] text-gray-500">{d.usage} m³</div>}
@@ -167,7 +167,7 @@ Terima kasih atas pembayaran Anda. 🙏`;
             </div>
 
             {/* Totals */}
-            <div className="text-xs space-y-1 ml-auto w-48 border-t border-black border-dashed pt-2">
+            <div className="text-xs space-y-1 ml-auto w-48 border-t border-black border-solid pt-2">
                 <div className="flex justify-between">
                     <span>Total Bayar:</span>
                     <span className="font-black text-sm">{formatRupiah(data.totalPaid)}</span>
@@ -301,7 +301,7 @@ Terima kasih atas pembayaran Anda. 🙏`;
                     // HEMAT KERTAS: TIKET HORIZONTAL KECIL (1/5 Kertas A4)
                     <div ref={printRef} className={cn(getFormatWrapperClass())}>
                         {/* Kiri: Info Perusahaan */}
-                        <div className="w-[30%] border-r-2 border-black border-dashed pr-4 flex flex-col justify-center text-center">
+                        <div className="w-[30%] border-r-2 border-black border-solid pr-4 flex flex-col justify-center text-center">
                             <div className="flex justify-center mb-2">
                                 <Image src="/logo-pamsimas.png" alt="Logo Pamsimas" width={100} height={35} className="object-contain brightness-0" priority />
                             </div>
