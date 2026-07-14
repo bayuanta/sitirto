@@ -233,7 +233,7 @@ export default function PembayaranPage() {
             if (result.success) {
                 const totalPaidFormatted = formatCurrency(method === 'cash' ? cashNum : remainingToPay);
                 if (confirm(`Pembayaran Berhasil!\nApakah Anda ingin mencetak struk sekarang?`)) {
-                    window.open(`/print/${result.txId}?format=thermal`, '_blank');
+                    window.open(`/print/${result.txId}?format=thermal58`, '_blank');
                 }
 
                 // Update local constraints

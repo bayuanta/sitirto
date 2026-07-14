@@ -1966,7 +1966,7 @@ Mohon untuk segera melakukan pelunasan. Terima kasih.`;
                                                     variant="ghost"
                                                     size="icon"
                                                     className="h-8 w-8 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50"
-                                                    onClick={() => window.open(`/print/${tx.id}?format=thermal`, '_blank')}
+                                                    onClick={() => window.open(`/print/${tx.id}?format=thermal58`, '_blank')}
                                                     title="Cetak Struk"
                                                 >
                                                     <Printer className="h-4 w-4" />

@@ -522,7 +522,7 @@ function WaterBillTable({
                                         </button>
                                     )}
                                     <button
-                                        onClick={() => window.open(`/print/${tx.id}?format=thermal`, '_blank')}
+                                        onClick={() => window.open(`/print/${tx.id}?format=thermal58`, '_blank')}
                                         className="p-2 hover:bg-slate-100 rounded text-slate-400 hover:text-indigo-600 transition-colors"
                                         title="Cetak Struk"
                                     >

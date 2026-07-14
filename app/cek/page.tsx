@@ -427,7 +427,7 @@ export default function MobileCekTagihan() {
                                                 <p className="font-black text-slate-900">{formatPrice(bill.amount)}</p>
                                             </div>
                                             <Button 
-                                                onClick={() => window.open(`/print/${bill.id}?format=thermal`, '_blank')}
+                                                onClick={() => window.open(`/print/${bill.id}?format=thermal58`, '_blank')}
                                                 size="sm" 
                                                 className="bg-slate-50 hover:bg-blue-50 text-slate-600 hover:text-blue-600 border border-slate-100 rounded-xl px-4 h-10 transition-all"
                                             >

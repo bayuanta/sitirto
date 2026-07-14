@@ -14,7 +14,7 @@ export default async function PrintPage({
     const resolvedSearchParams = await searchParams;
 
     const id = parseInt(resolvedParams.id, 10);
-    const format = resolvedSearchParams.format || 'thermal';
+    const format = resolvedSearchParams.format || 'thermal58';
 
     if (isNaN(id)) {
         return notFound();
